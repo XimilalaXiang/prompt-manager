@@ -14,3 +14,6 @@ vendor/
 web/dist/*
 !web/dist/.gitkeep
 tmp/
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
