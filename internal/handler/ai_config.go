@@ -197,15 +197,52 @@ func (h *AIConfigHandler) Test(c *gin.Context) {
 		return
 	}
 
-	_, err := h.crypto.Decrypt(config.APIKeyEncrypted)
+	apiKey, err := h.crypto.Decrypt(config.APIKeyEncrypted)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to decrypt API key"})
 		return
 	}
 
+	baseURL := strings.TrimSuffix(config.APIEndpoint, "/")
+	baseURL = strings.TrimSuffix(baseURL, "/chat/completions")
+	baseURL = strings.TrimSuffix(baseURL, "/v1")
+	modelsURL := baseURL + "/v1/models"
+
+	start := time.Now()
+	client := &http.Client{Timeout: 10 * time.Second}
+	httpReq, err := http.NewRequest("GET", modelsURL, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid endpoint URL: %v", err)})
+		return
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := client.Do(httpReq)
+	latency := time.Since(start).Milliseconds()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"status":     "error",
+			"message":    fmt.Sprintf("连接失败: %v", err),
+			"latency_ms": latency,
+		})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		c.JSON(http.StatusOK, gin.H{
+			"status":     "error",
+			"message":    fmt.Sprintf("API 返回 %d: %s", resp.StatusCode, string(body)),
+			"latency_ms": latency,
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"status":  "ok",
-		"message": "API key is valid and decryptable",
+		"status":     "ok",
+		"message":    fmt.Sprintf("连接成功 (%dms)", latency),
+		"latency_ms": latency,
 	})
 }
 

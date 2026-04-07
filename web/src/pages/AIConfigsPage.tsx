@@ -5,7 +5,7 @@ import BrutalButton from '../components/BrutalButton'
 import BrutalCard from '../components/BrutalCard'
 import BrutalBadge from '../components/BrutalBadge'
 import { BrutalInput, BrutalTextarea, BrutalSelect } from '../components/BrutalInput'
-import { Plus, Edit2, Trash2, X, Key, Zap, RefreshCw, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Key, Zap, RefreshCw, Check, Wifi, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const providerColors: Record<string, string> = {
@@ -23,6 +23,7 @@ export default function AIConfigsPage() {
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [fetchingModels, setFetchingModels] = useState(false)
   const [modelSearch, setModelSearch] = useState('')
+  const [testingId, setTestingId] = useState<string | null>(null)
   const [form, setForm] = useState({
     name: '', provider: 'openai', api_endpoint: '', models: '', api_key: '',
     max_tokens: 2000, temperature: 0.7, top_p: 1.0,
@@ -120,6 +121,22 @@ export default function AIConfigsPage() {
       toast.success('已删除')
       load()
     } catch { toast.error('删除失败') }
+  }
+
+  const handleTest = async (id: string) => {
+    setTestingId(id)
+    try {
+      const { data } = await api.post(`/ai-configs/${id}/test`)
+      if (data.status === 'ok') {
+        toast.success(data.message)
+      } else {
+        toast.error(data.message)
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '测试失败')
+    } finally {
+      setTestingId(null)
+    }
   }
 
   const parseModels = (models: string): string[] => {
@@ -246,6 +263,17 @@ export default function AIConfigsPage() {
               Temp: {c.temperature} | Top-P: {c.top_p} | Max: {c.max_tokens}
             </div>
             <div className="flex gap-2 border-t-2 border-black pt-3">
+              <BrutalButton
+                size="sm"
+                variant="ghost"
+                onClick={() => handleTest(c.id)}
+                disabled={testingId === c.id}
+                title="测试连接"
+              >
+                {testingId === c.id
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Wifi className="w-3 h-3" />}
+              </BrutalButton>
               <BrutalButton size="sm" variant="ghost" onClick={() => handleEdit(c)}>
                 <Edit2 className="w-3 h-3" />
               </BrutalButton>
