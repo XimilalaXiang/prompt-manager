@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brutal-pink: #ff006e;
+  --color-brutal-yellow: #ccff00;
+  --color-brutal-blue: #3a86ff;
+  --color-brutal-purple: #8338ec;
+  --color-brutal-orange: #fb5607;
+  --color-brutal-cyan: #00f5d4;
+  --color-brutal-bg: #f5f0e8;
+}
+
+body {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  background-color: var(--color-brutal-bg);
+  color: #000;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+
+::selection {
+  background-color: var(--color-brutal-pink);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-brutal-bg);
+  border-left: 2px solid black;
+}
+
+::-webkit-scrollbar-thumb {
+  background: black;
+}
