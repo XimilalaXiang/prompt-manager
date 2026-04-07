@@ -3,7 +3,7 @@ import api from '../lib/api'
 import BrutalButton from '../components/BrutalButton'
 import BrutalCard from '../components/BrutalCard'
 import { BrutalInput } from '../components/BrutalInput'
-import { Settings, Download, Upload, Sliders, Save } from 'lucide-react'
+import { Settings, Download, Upload, Sliders, Save, CloudUpload, Wifi, Trash2, RotateCcw, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface AppSetting {
@@ -25,8 +25,13 @@ export default function SettingsPage() {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [settings, setSettings] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  const [webdav, setWebdav] = useState({ url: '', username: '', password: '', path: '' })
+  const [webdavConfigured, setWebdavConfigured] = useState(false)
+  const [webdavHasPassword, setWebdavHasPassword] = useState(false)
+  const [backups, setBackups] = useState<any[]>([])
+  const [backupLoading, setBackupLoading] = useState('')
 
-  useEffect(() => { loadSettings() }, [])
+  useEffect(() => { loadSettings(); loadWebDAVConfig() }, [])
 
   const loadSettings = async () => {
     try {
@@ -50,6 +55,85 @@ export default function SettingsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const loadWebDAVConfig = async () => {
+    try {
+      const { data } = await api.get('/backup/webdav/config')
+      setWebdavConfigured(data.configured)
+      setWebdavHasPassword(data.has_password || false)
+      if (data.configured) {
+        setWebdav({ url: data.url || '', username: data.username || '', password: '', path: data.path || '' })
+        loadBackups()
+      }
+    } catch {}
+  }
+
+  const saveWebDAVConfig = async () => {
+    setBackupLoading('config')
+    try {
+      await api.post('/backup/webdav/config', webdav)
+      toast.success('WebDAV 配置已保存')
+      setWebdavConfigured(true)
+      if (webdav.password) setWebdavHasPassword(true)
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '保存失败')
+    } finally { setBackupLoading('') }
+  }
+
+  const testWebDAV = async () => {
+    setBackupLoading('test')
+    try {
+      const { data } = await api.post('/backup/webdav/test')
+      if (data.status === 'ok') toast.success(data.message)
+      else toast.error(data.message)
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '测试失败')
+    } finally { setBackupLoading('') }
+  }
+
+  const createBackup = async () => {
+    setBackupLoading('create')
+    try {
+      const { data } = await api.post('/backup/webdav/create')
+      toast.success(`${data.message} — ${data.filename}`)
+      loadBackups()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '备份失败')
+    } finally { setBackupLoading('') }
+  }
+
+  const loadBackups = async () => {
+    try {
+      const { data } = await api.get('/backup/webdav/list')
+      setBackups(data.backups || [])
+    } catch {}
+  }
+
+  const deleteBackup = async (name: string) => {
+    if (!confirm(`确定删除备份 ${name}？`)) return
+    try {
+      await api.delete(`/backup/webdav/${name}`)
+      toast.success('已删除')
+      loadBackups()
+    } catch { toast.error('删除失败') }
+  }
+
+  const restoreBackup = async (name: string) => {
+    if (!confirm(`确定从 ${name} 恢复？当前数据将被覆盖！`)) return
+    setBackupLoading('restore-' + name)
+    try {
+      const { data } = await api.post(`/backup/webdav/restore/${name}`)
+      toast.success(data.message)
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '恢复失败')
+    } finally { setBackupLoading('') }
+  }
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / 1048576).toFixed(1) + ' MB'
   }
 
   const exportPrompts = async (format: string) => {
@@ -132,6 +216,96 @@ export default function SettingsPage() {
               )
             })}
           </div>
+        </BrutalCard>
+
+        <BrutalCard className="md:col-span-2">
+          <h3 className="font-black text-xl mb-4 flex items-center gap-2">
+            <CloudUpload className="w-5 h-5" /> WebDAV 备份
+          </h3>
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <BrutalInput
+              label="WebDAV URL"
+              value={webdav.url}
+              onChange={(e) => setWebdav((w) => ({ ...w, url: e.target.value }))}
+              placeholder="https://dav.example.com"
+            />
+            <BrutalInput
+              label="用户名"
+              value={webdav.username}
+              onChange={(e) => setWebdav((w) => ({ ...w, username: e.target.value }))}
+              placeholder="username"
+            />
+            <BrutalInput
+              label="密码"
+              type="password"
+              value={webdav.password}
+              onChange={(e) => setWebdav((w) => ({ ...w, password: e.target.value }))}
+              placeholder={webdavHasPassword ? '留空保持不变' : '输入密码'}
+            />
+            <BrutalInput
+              label="远程路径"
+              value={webdav.path}
+              onChange={(e) => setWebdav((w) => ({ ...w, path: e.target.value }))}
+              placeholder="/prompt-manager-backups"
+            />
+          </div>
+          <div className="flex gap-2 mb-4">
+            <BrutalButton size="sm" onClick={saveWebDAVConfig} disabled={backupLoading === 'config' || !webdav.url}>
+              {backupLoading === 'config' ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : <Save className="w-3 h-3 inline mr-1" />}
+              保存配置
+            </BrutalButton>
+            <BrutalButton size="sm" variant="ghost" onClick={testWebDAV} disabled={!!backupLoading || !webdavConfigured}>
+              {backupLoading === 'test' ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : <Wifi className="w-3 h-3 inline mr-1" />}
+              测试连接
+            </BrutalButton>
+            <BrutalButton size="sm" variant="secondary" onClick={createBackup} disabled={!!backupLoading || !webdavConfigured}>
+              {backupLoading === 'create' ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : <CloudUpload className="w-3 h-3 inline mr-1" />}
+              立即备份
+            </BrutalButton>
+          </div>
+
+          {backups.length > 0 && (
+            <div>
+              <h4 className="font-black text-sm mb-2">备份列表</h4>
+              <div className="border-2 border-black max-h-48 overflow-y-auto">
+                {backups.map((b) => (
+                  <div key={b.name} className="flex items-center justify-between px-3 py-2 border-b border-black/10 last:border-0 font-mono text-xs">
+                    <div>
+                      <span className="font-black">{b.name}</span>
+                      <span className="text-gray-500 ml-2">{formatSize(b.size)}</span>
+                      <span className="text-gray-400 ml-2">{new Date(b.mod_time).toLocaleString()}</span>
+                    </div>
+                    <div className="flex gap-1">
+                      <BrutalButton
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => restoreBackup(b.name)}
+                        disabled={!!backupLoading}
+                        title="恢复"
+                      >
+                        {backupLoading === 'restore-' + b.name
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <RotateCcw className="w-3 h-3" />}
+                      </BrutalButton>
+                      <BrutalButton
+                        size="sm"
+                        variant="danger"
+                        onClick={() => deleteBackup(b.name)}
+                        disabled={!!backupLoading}
+                        title="删除"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </BrutalButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!webdavConfigured && (
+            <p className="font-mono text-xs text-gray-500">配置 WebDAV 服务器后即可使用云端备份功能</p>
+          )}
         </BrutalCard>
 
         <BrutalCard>

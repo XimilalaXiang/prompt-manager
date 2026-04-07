@@ -34,6 +34,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	conversationHandler := handler.NewConversationHandler()
 	importExportHandler := handler.NewImportExportHandler(cryptoSvc)
 	settingsHandler := handler.NewSettingsHandler()
+	backupHandler := handler.NewBackupHandler(cfg.DBPath, cryptoSvc)
 
 	api := r.Group("/api")
 	{
@@ -126,13 +127,24 @@ func Setup(cfg *config.Config) *gin.Engine {
 				imp.POST("/ai-configs", importExportHandler.ImportAIConfigs)
 			}
 
-			settings := protected.Group("/settings")
-			{
-				settings.GET("", settingsHandler.List)
-				settings.GET("/:key", settingsHandler.Get)
-				settings.POST("", settingsHandler.Upsert)
-				settings.DELETE("/:key", settingsHandler.Delete)
-			}
+		settings := protected.Group("/settings")
+		{
+			settings.GET("", settingsHandler.List)
+			settings.GET("/:key", settingsHandler.Get)
+			settings.POST("", settingsHandler.Upsert)
+			settings.DELETE("/:key", settingsHandler.Delete)
+		}
+
+		backup := protected.Group("/backup/webdav")
+		{
+			backup.GET("/config", backupHandler.GetConfig)
+			backup.POST("/config", backupHandler.SaveConfig)
+			backup.POST("/test", backupHandler.TestConnection)
+			backup.POST("/create", backupHandler.CreateBackup)
+			backup.GET("/list", backupHandler.ListBackups)
+			backup.DELETE("/:name", backupHandler.DeleteBackup)
+			backup.POST("/restore/:name", backupHandler.RestoreBackup)
+		}
 		}
 	}
 
