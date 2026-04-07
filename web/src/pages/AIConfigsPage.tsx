@@ -128,9 +128,10 @@ export default function AIConfigsPage() {
     try {
       const { data } = await api.post(`/ai-configs/${id}/test`)
       if (data.status === 'ok') {
-        toast.success(data.message)
+        const replySnippet = data.reply ? ` — AI: "${data.reply.slice(0, 50)}"` : ''
+        toast.success(`${data.message} [${data.model}]${replySnippet}`, { duration: 5000 })
       } else {
-        toast.error(data.message)
+        toast.error(`${data.message} [${data.model || ''}]`, { duration: 5000 })
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || '测试失败')

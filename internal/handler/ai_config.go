@@ -203,19 +203,37 @@ func (h *AIConfigHandler) Test(c *gin.Context) {
 		return
 	}
 
-	baseURL := strings.TrimSuffix(config.APIEndpoint, "/")
-	baseURL = strings.TrimSuffix(baseURL, "/chat/completions")
-	baseURL = strings.TrimSuffix(baseURL, "/v1")
-	modelsURL := baseURL + "/v1/models"
+	var models []string
+	_ = json.Unmarshal([]byte(config.Models), &models)
+	testModel := "gpt-3.5-turbo"
+	if len(models) > 0 {
+		testModel = models[0]
+	}
+
+	endpoint := config.APIEndpoint
+	if !strings.HasSuffix(endpoint, "/chat/completions") {
+		endpoint = strings.TrimSuffix(endpoint, "/")
+		endpoint = strings.TrimSuffix(endpoint, "/v1")
+		endpoint += "/v1/chat/completions"
+	}
+
+	reqBody, _ := json.Marshal(map[string]interface{}{
+		"model": testModel,
+		"messages": []map[string]string{
+			{"role": "user", "content": "Hi"},
+		},
+		"max_tokens": 5,
+	})
 
 	start := time.Now()
-	client := &http.Client{Timeout: 10 * time.Second}
-	httpReq, err := http.NewRequest("GET", modelsURL, nil)
+	client := &http.Client{Timeout: 15 * time.Second}
+	httpReq, err := http.NewRequest("POST", endpoint, strings.NewReader(string(reqBody)))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid endpoint URL: %v", err)})
 		return
 	}
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(httpReq)
 	latency := time.Since(start).Milliseconds()
@@ -224,25 +242,44 @@ func (h *AIConfigHandler) Test(c *gin.Context) {
 			"status":     "error",
 			"message":    fmt.Sprintf("连接失败: %v", err),
 			"latency_ms": latency,
+			"model":      testModel,
 		})
 		return
 	}
 	defer resp.Body.Close()
 
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+
 	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
 		c.JSON(http.StatusOK, gin.H{
 			"status":     "error",
 			"message":    fmt.Sprintf("API 返回 %d: %s", resp.StatusCode, string(body)),
 			"latency_ms": latency,
+			"model":      testModel,
 		})
 		return
+	}
+
+	var chatResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	_ = json.Unmarshal(body, &chatResp)
+
+	reply := ""
+	if len(chatResp.Choices) > 0 {
+		reply = chatResp.Choices[0].Message.Content
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":     "ok",
 		"message":    fmt.Sprintf("连接成功 (%dms)", latency),
 		"latency_ms": latency,
+		"model":      testModel,
+		"reply":      reply,
 	})
 }
 
