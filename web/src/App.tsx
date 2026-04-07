@@ -8,6 +8,7 @@ import ComparePage from './pages/ComparePage'
 import AIConfigsPage from './pages/AIConfigsPage'
 import KnowledgePage from './pages/KnowledgePage'
 import ConversationsPage from './pages/ConversationsPage'
+import CategoriesPage from './pages/CategoriesPage'
 import SettingsPage from './pages/SettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,7 @@ function AppRoutes() {
       <Route path="/ai-configs" element={<ProtectedRoute><Layout><AIConfigsPage /></Layout></ProtectedRoute>} />
       <Route path="/knowledge" element={<ProtectedRoute><Layout><KnowledgePage /></Layout></ProtectedRoute>} />
       <Route path="/conversations" element={<ProtectedRoute><Layout><ConversationsPage /></Layout></ProtectedRoute>} />
+      <Route path="/categories" element={<ProtectedRoute><Layout><CategoriesPage /></Layout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/prompts" />} />
     </Routes>

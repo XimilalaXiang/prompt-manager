@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
   MessageSquare, FileText, Settings, BookOpen, GitCompare,
-  History, LogOut, Menu, X, Zap,
+  History, LogOut, Menu, X, Zap, Tag,
 } from 'lucide-react'
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { path: '/compare', label: '对比', icon: GitCompare },
   { path: '/knowledge', label: '知识库', icon: BookOpen },
   { path: '/conversations', label: '对话历史', icon: History },
+  { path: '/categories', label: '分类', icon: Tag },
   { path: '/ai-configs', label: 'AI配置', icon: Zap },
   { path: '/settings', label: '设置', icon: Settings },
 ]
