@@ -34,6 +34,7 @@ export default function ComparePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [temperature, setTemperature] = useState(0.7)
+  const [topP, setTopP] = useState(1.0)
   const [useStreaming, setUseStreaming] = useState(true)
   const [streamingContents, setStreamingContents] = useState<Record<string, string>>({})
   const [isRating, setIsRating] = useState(false)
@@ -71,7 +72,7 @@ export default function ComparePage() {
     return selectedModels.map((key) => {
       const [configId, ...rest] = key.split('-')
       const modelName = rest.join('-')
-      return { config_id: configId, model_name: modelName, temperature }
+      return { config_id: configId, model_name: modelName, temperature, top_p: topP }
     })
   }
 
@@ -278,7 +279,7 @@ export default function ComparePage() {
       const { data: session } = await api.post('/conversations', {
         title: `对话 ${new Date().toLocaleString()}`,
         system_prompt_content: systemPrompt,
-        model_parameters: JSON.stringify({ temperature }),
+        model_parameters: JSON.stringify({ temperature, topP }),
       })
 
       await api.post(`/conversations/${session.id}/messages`, {
@@ -297,7 +298,7 @@ export default function ComparePage() {
           title: `对比 ${new Date().toLocaleString()}`,
           selected_ai_configs: JSON.stringify(selectedModels),
           ratings: JSON.stringify(ratings),
-          model_parameters: JSON.stringify({ temperature }),
+          model_parameters: JSON.stringify({ temperature, topP }),
         })
       }
 
@@ -329,7 +330,7 @@ export default function ComparePage() {
               rows={4}
             />
             <div className="mt-4">
-              <label className="font-black text-sm">温度: {temperature}</label>
+              <label className="font-black text-sm">温度 (Temperature): {temperature}</label>
               <input
                 type="range"
                 min="0"
@@ -339,6 +340,20 @@ export default function ComparePage() {
                 onChange={(e) => setTemperature(parseFloat(e.target.value))}
                 className="w-full mt-1 accent-brutal-pink"
               />
+              <p className="font-mono text-xs text-gray-400 mt-0.5">越高越随机，越低越确定</p>
+            </div>
+            <div className="mt-4">
+              <label className="font-black text-sm">Top-P: {topP}</label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={topP}
+                onChange={(e) => setTopP(parseFloat(e.target.value))}
+                className="w-full mt-1 accent-brutal-pink"
+              />
+              <p className="font-mono text-xs text-gray-400 mt-0.5">核采样阈值，1.0 = 全部词</p>
             </div>
             <div className="mt-4 flex items-center gap-2">
               <label className="font-black text-sm flex items-center gap-2 cursor-pointer">
