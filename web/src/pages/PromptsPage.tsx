@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
-import { Prompt, Category } from '../lib/types'
+import { Prompt, Category, PromptVersion } from '../lib/types'
 import BrutalButton from '../components/BrutalButton'
 import BrutalCard from '../components/BrutalCard'
 import BrutalBadge from '../components/BrutalBadge'
 import { BrutalInput, BrutalTextarea, BrutalSelect } from '../components/BrutalInput'
-import { Plus, Star, Search, Edit2, Trash2, X, GitCompare, Filter, Tag } from 'lucide-react'
+import { Plus, Star, Search, Edit2, Trash2, X, GitCompare, Filter, Tag, History, RotateCcw, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function PromptsPage() {
@@ -19,6 +19,9 @@ export default function PromptsPage() {
   const [form, setForm] = useState({ title: '', description: '', content: '', category_id: '', tags: '', prompt_type: 'user' })
   const [tagsList, setTagsList] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [versionPrompt, setVersionPrompt] = useState<Prompt | null>(null)
+  const [versions, setVersions] = useState<PromptVersion[]>([])
+  const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null)
 
   useEffect(() => { load() }, [filter])
   useEffect(() => { loadCategories() }, [])
@@ -106,6 +109,26 @@ export default function PromptsPage() {
 
   const parseTags = (tags: string): string[] => {
     try { return JSON.parse(tags) } catch { return tags ? [tags] : [] }
+  }
+
+  const handleVersions = async (p: Prompt) => {
+    setVersionPrompt(p)
+    setSelectedVersion(null)
+    try {
+      const { data } = await api.get(`/prompts/${p.id}/versions`)
+      setVersions(data || [])
+    } catch { toast.error('加载版本历史失败') }
+  }
+
+  const handleRollback = async (version: PromptVersion) => {
+    if (!versionPrompt) return
+    if (!confirm(`确定回滚到版本 ${version.version_number}？当前内容将被替换。`)) return
+    try {
+      await api.post(`/prompts/${versionPrompt.id}/rollback/${version.version_number}`)
+      toast.success(`已回滚到版本 ${version.version_number}`)
+      setVersionPrompt(null)
+      load()
+    } catch { toast.error('回滚失败') }
   }
 
   return (
@@ -254,6 +277,9 @@ export default function PromptsPage() {
               <BrutalButton size="sm" variant="ghost" onClick={() => handleEdit(p)}>
                 <Edit2 className="w-3 h-3" />
               </BrutalButton>
+              <BrutalButton size="sm" variant="ghost" onClick={() => handleVersions(p)}>
+                <History className="w-3 h-3" />
+              </BrutalButton>
               <BrutalButton size="sm" variant="ghost" onClick={() => handleCompare(p)}>
                 <GitCompare className="w-3 h-3" />
               </BrutalButton>
@@ -270,6 +296,80 @@ export default function PromptsPage() {
           <Filter className="w-12 h-12 mx-auto mb-4 text-gray-400" />
           <p className="font-black text-xl">没有找到提示词</p>
           <p className="font-mono text-sm text-gray-500 mt-1">创建你的第一个提示词开始吧</p>
+        </div>
+      )}
+
+      {versionPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setVersionPrompt(null)}>
+          <div className="bg-[#fffbe6] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black">
+              <div>
+                <h3 className="font-black text-xl flex items-center gap-2">
+                  <History className="w-5 h-5" /> 版本历史
+                </h3>
+                <p className="font-mono text-sm text-gray-600">{versionPrompt.title}</p>
+              </div>
+              <button onClick={() => setVersionPrompt(null)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto flex min-h-0">
+              <div className="w-1/3 border-r-4 border-black overflow-auto">
+                {versions.length === 0 ? (
+                  <p className="font-mono text-sm text-gray-500 p-4">暂无版本记录</p>
+                ) : (
+                  versions.map((v) => (
+                    <div
+                      key={v.id}
+                      className={`px-4 py-3 border-b-2 border-black cursor-pointer hover:bg-[#ccff00]/30 transition-colors ${selectedVersion?.id === v.id ? 'bg-[#ccff00]/50' : ''}`}
+                      onClick={() => setSelectedVersion(v)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-black text-sm">v{v.version_number}</span>
+                        <BrutalButton
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRollback(v) }}
+                          title="回滚到此版本"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </BrutalButton>
+                      </div>
+                      <p className="font-mono text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(v.created_at).toLocaleString()}
+                      </p>
+                      {v.change_description && (
+                        <p className="font-mono text-xs text-gray-600 mt-1 truncate">{v.change_description}</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex-1 overflow-auto p-6">
+                {selectedVersion ? (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-black text-lg">版本 {selectedVersion.version_number} 内容</h4>
+                      <BrutalButton size="sm" onClick={() => handleRollback(selectedVersion)}>
+                        <RotateCcw className="w-3 h-3 mr-1" /> 回滚到此版本
+                      </BrutalButton>
+                    </div>
+                    <pre className="font-mono text-sm whitespace-pre-wrap bg-white border-2 border-black p-4 leading-relaxed">
+                      {selectedVersion.content}
+                    </pre>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <History className="w-10 h-10 mx-auto mb-2" />
+                      <p className="font-mono text-sm">选择左侧版本查看内容</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
