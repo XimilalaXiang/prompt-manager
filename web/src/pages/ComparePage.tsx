@@ -278,6 +278,7 @@ export default function ComparePage() {
       const { data: session } = await api.post('/conversations', {
         title: `对话 ${new Date().toLocaleString()}`,
         system_prompt_content: systemPrompt,
+        model_parameters: JSON.stringify({ temperature }),
       })
 
       await api.post(`/conversations/${session.id}/messages`, {
@@ -291,7 +292,16 @@ export default function ComparePage() {
         })),
       })
 
-      toast.success('对话已保存')
+      if (Object.keys(ratings).length > 0 || selectedModels.length > 0) {
+        await api.post(`/conversations/${session.id}/comparisons`, {
+          title: `对比 ${new Date().toLocaleString()}`,
+          selected_ai_configs: JSON.stringify(selectedModels),
+          ratings: JSON.stringify(ratings),
+          model_parameters: JSON.stringify({ temperature }),
+        })
+      }
+
+      toast.success('对话和对比结果已保存')
     } catch (err: any) {
       toast.error(err.response?.data?.error || '保存失败')
     }

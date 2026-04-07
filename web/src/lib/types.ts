@@ -85,3 +85,17 @@ export interface ConversationMessage {
   message_order: number
   created_at: string
 }
+
+export interface ConversationComparison {
+  id: string
+  session_id: string
+  title: string
+  description: string
+  selected_ai_configs: string
+  rating: number | null
+  notes: string
+  ratings: string
+  notes_json: string
+  model_parameters: string
+  created_at: string
+}
