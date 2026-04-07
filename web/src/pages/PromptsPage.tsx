@@ -6,7 +6,7 @@ import BrutalButton from '../components/BrutalButton'
 import BrutalCard from '../components/BrutalCard'
 import BrutalBadge from '../components/BrutalBadge'
 import { BrutalInput, BrutalTextarea, BrutalSelect } from '../components/BrutalInput'
-import { Plus, Star, Search, Edit2, Trash2, X, GitCompare, Filter } from 'lucide-react'
+import { Plus, Star, Search, Edit2, Trash2, X, GitCompare, Filter, Tag } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function PromptsPage() {
@@ -17,6 +17,8 @@ export default function PromptsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Prompt | null>(null)
   const [form, setForm] = useState({ title: '', description: '', content: '', category_id: '', tags: '', prompt_type: 'user' })
+  const [tagsList, setTagsList] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
 
   useEffect(() => { load() }, [filter])
   useEffect(() => { loadCategories() }, [])
@@ -42,16 +44,19 @@ export default function PromptsPage() {
 
   const handleSave = async () => {
     try {
+      const payload = { ...form, tags: JSON.stringify(tagsList) }
       if (editing) {
-        await api.put(`/prompts/${editing.id}`, form)
+        await api.put(`/prompts/${editing.id}`, payload)
         toast.success('更新成功')
       } else {
-        await api.post('/prompts', form)
+        await api.post('/prompts', payload)
         toast.success('创建成功')
       }
       setShowForm(false)
       setEditing(null)
       setForm({ title: '', description: '', content: '', category_id: '', tags: '', prompt_type: 'user' })
+      setTagsList([])
+      setTagInput('')
       load()
     } catch (err: any) {
       toast.error(err.response?.data?.error || '保存失败')
@@ -68,6 +73,8 @@ export default function PromptsPage() {
       tags: p.tags,
       prompt_type: p.prompt_type,
     })
+    setTagsList(parseTags(p.tags))
+    setTagInput('')
     setShowForm(true)
   }
 
@@ -108,7 +115,7 @@ export default function PromptsPage() {
           <h1 className="font-black text-3xl md:text-5xl tracking-tight">提示词管理</h1>
           <p className="font-mono text-sm md:text-base text-gray-600 mt-1">管理你的系统提示词和用户提示词</p>
         </div>
-        <BrutalButton onClick={() => { setEditing(null); setForm({ title: '', description: '', content: '', category_id: '', tags: '', prompt_type: 'user' }); setShowForm(true) }}>
+        <BrutalButton onClick={() => { setEditing(null); setForm({ title: '', description: '', content: '', category_id: '', tags: '', prompt_type: 'user' }); setTagsList([]); setTagInput(''); setShowForm(true) }}>
           <Plus className="w-4 h-4 inline mr-1" /> 新建提示词
         </BrutalButton>
       </div>
@@ -177,7 +184,42 @@ export default function PromptsPage() {
             <div className="md:col-span-2">
               <BrutalTextarea label="内容" value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} rows={6} required />
             </div>
-            <BrutalInput label="标签 (JSON 数组)" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} placeholder='["标签1","标签2"]' />
+            <div className="md:col-span-2">
+              <label className="font-black text-sm md:text-base block mb-1">标签</label>
+              <div className="border-2 md:border-4 border-black rounded-none bg-white px-3 py-2 flex flex-wrap gap-1.5 items-center min-h-[44px] focus-within:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
+                {tagsList.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="border-2 border-black bg-[#ccff00] px-2 py-0.5 text-xs font-mono font-black cursor-pointer hover:bg-red-300 transition-colors flex items-center gap-1 select-none"
+                    onClick={() => setTagsList((prev) => prev.filter((_, idx) => idx !== i))}
+                    title="点击移除"
+                  >
+                    {tag} <X className="w-3 h-3" />
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const val = tagInput.trim()
+                      if (val && !tagsList.includes(val)) {
+                        setTagsList((prev) => [...prev, val])
+                      }
+                      setTagInput('')
+                    }
+                    if (e.key === 'Backspace' && !tagInput && tagsList.length > 0) {
+                      setTagsList((prev) => prev.slice(0, -1))
+                    }
+                  }}
+                  placeholder={tagsList.length === 0 ? '输入标签后按回车添加...' : '继续添加...'}
+                  className="flex-1 min-w-[120px] outline-none font-mono text-sm bg-transparent"
+                />
+              </div>
+              <p className="font-mono text-xs text-gray-500 mt-1">输入标签名后按 Enter 添加，点击标签可移除，Backspace 可删除最后一个</p>
+            </div>
           </div>
           <div className="mt-4 flex gap-2">
             <BrutalButton onClick={handleSave}>{editing ? '更新' : '创建'}</BrutalButton>
