@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../lib/api'
-import { AIConfig, Prompt } from '../lib/types'
+import { AIConfig } from '../lib/types'
 import BrutalButton from '../components/BrutalButton'
 import BrutalCard from '../components/BrutalCard'
 import { BrutalTextarea, BrutalSelect } from '../components/BrutalInput'
-import { Send, Save, Bot, Zap, Clock } from 'lucide-react'
+import { Send, Save, Bot, Zap, Clock, Star } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface ModelOption {
@@ -34,10 +34,15 @@ export default function ComparePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [temperature, setTemperature] = useState(0.7)
+  const [useStreaming, setUseStreaming] = useState(true)
+  const [streamingContents, setStreamingContents] = useState<Record<string, string>>({})
+  const [isRating, setIsRating] = useState(false)
+  const [ratings, setRatings] = useState<Record<string, any>>({})
+  const [ratingModel, setRatingModel] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { loadConfigs() }, [])
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, streamingContents])
 
   const loadConfigs = async () => {
     try {
@@ -62,6 +67,21 @@ export default function ComparePage() {
     )
   }
 
+  const buildModelsPayload = () => {
+    return selectedModels.map((key) => {
+      const [configId, ...rest] = key.split('-')
+      const modelName = rest.join('-')
+      return { config_id: configId, model_name: modelName, temperature }
+    })
+  }
+
+  const buildHistory = () => {
+    return messages.map((m) => ({
+      role: m.type === 'user' ? 'user' : 'assistant',
+      content: m.content,
+    }))
+  }
+
   const sendMessage = async () => {
     if (!userInput.trim() || selectedModels.length === 0) {
       toast.error('请输入消息并选择至少一个模型')
@@ -69,6 +89,7 @@ export default function ComparePage() {
     }
 
     setIsRunning(true)
+    setRatings({})
     const userMsg: Message = {
       id: crypto.randomUUID(),
       type: 'user',
@@ -79,18 +100,106 @@ export default function ComparePage() {
     const prompt = userInput.trim()
     setUserInput('')
 
+    const models = buildModelsPayload()
+    const history = buildHistory()
+
+    if (useStreaming) {
+      await sendStreamingMessage(prompt, models, history)
+    } else {
+      await sendNonStreamingMessage(prompt, models, history)
+    }
+
+    setIsRunning(false)
+  }
+
+  const sendStreamingMessage = async (prompt: string, models: any[], history: any[]) => {
+    const initialStreaming: Record<string, string> = {}
+    selectedModels.forEach((key) => { initialStreaming[key] = '' })
+    setStreamingContents(initialStreaming)
+
     try {
-      const models = selectedModels.map((key) => {
-        const [configId, ...rest] = key.split('-')
-        const modelName = rest.join('-')
-        return { config_id: configId, model_name: modelName, temperature }
+      const token = localStorage.getItem('access_token')
+      const response = await fetch('/api/compare/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          prompt,
+          system_prompt: systemPrompt,
+          conversation_history: history,
+          models,
+        }),
       })
 
-      const history = messages.map((m) => ({
-        role: m.type === 'user' ? 'user' : 'assistant',
-        content: m.content,
-      }))
+      if (!response.ok) throw new Error('Stream request failed')
 
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader')
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+      const finalContents: Record<string, string> = {}
+      const doneModels = new Set<string>()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const jsonStr = line.slice(6).trim()
+          if (!jsonStr) continue
+
+          try {
+            const chunk = JSON.parse(jsonStr)
+            if (chunk.all_done) continue
+
+            const modelKey = chunk.model_key
+            if (!modelKey) continue
+
+            if (chunk.error) {
+              finalContents[modelKey] = chunk.error
+              doneModels.add(modelKey)
+              setStreamingContents((prev) => ({ ...prev, [modelKey]: chunk.error }))
+            } else if (chunk.done) {
+              doneModels.add(modelKey)
+            } else if (chunk.content) {
+              finalContents[modelKey] = (finalContents[modelKey] || '') + chunk.content
+              setStreamingContents((prev) => ({
+                ...prev,
+                [modelKey]: (prev[modelKey] || '') + chunk.content,
+              }))
+            }
+          } catch {}
+        }
+      }
+
+      const aiMessages: Message[] = Object.entries(finalContents).map(([key, content]) => {
+        const [, ...rest] = key.split('-')
+        return {
+          id: crypto.randomUUID(),
+          type: 'assistant' as const,
+          content,
+          modelName: rest.join('-'),
+          timestamp: new Date(),
+        }
+      })
+      setMessages((prev) => [...prev, ...aiMessages])
+      setStreamingContents({})
+    } catch (err: any) {
+      toast.error(err.message || '流式请求失败')
+      setStreamingContents({})
+    }
+  }
+
+  const sendNonStreamingMessage = async (prompt: string, models: any[], history: any[]) => {
+    try {
       const { data } = await api.post('/compare/send', {
         prompt,
         system_prompt: systemPrompt,
@@ -107,16 +216,89 @@ export default function ComparePage() {
         responseTimeMs: r.response_time_ms,
         timestamp: new Date(),
       }))
-
       setMessages((prev) => [...prev, ...aiMessages])
     } catch (err: any) {
       toast.error(err.response?.data?.error || '发送失败')
+    }
+  }
+
+  const handleRate = async () => {
+    if (!ratingModel) {
+      toast.error('请先选择评分模型')
+      return
+    }
+    const assistantMsgs = messages.filter((m) => m.type === 'assistant')
+    const lastUserMsg = [...messages].reverse().find((m) => m.type === 'user')
+    if (!lastUserMsg || assistantMsgs.length === 0) {
+      toast.error('需要至少一条对话才能评分')
+      return
+    }
+
+    const lastAssistantMsgs = assistantMsgs.filter(
+      (m) => m.timestamp >= lastUserMsg.timestamp
+    )
+    if (lastAssistantMsgs.length === 0) {
+      toast.error('没有可评分的回复')
+      return
+    }
+
+    setIsRating(true)
+    try {
+      const [configId, ...rest] = ratingModel.split('-')
+      const modelName = rest.join('-')
+
+      const { data } = await api.post('/compare/rate', {
+        prompt: lastUserMsg.content,
+        system_prompt: systemPrompt,
+        responses: lastAssistantMsgs.map((m) => ({
+          model_name: m.modelName,
+          content: m.content,
+        })),
+        rating_config: {
+          config_id: configId,
+          model_name: modelName,
+          temperature: 0.1,
+        },
+      })
+      setRatings(data.ratings || {})
+      toast.success('AI 评分完成')
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '评分失败')
     } finally {
-      setIsRunning(false)
+      setIsRating(false)
+    }
+  }
+
+  const handleSaveConversation = async () => {
+    if (messages.length === 0) {
+      toast.error('没有对话内容可保存')
+      return
+    }
+    try {
+      const { data: session } = await api.post('/conversations', {
+        title: `对话 ${new Date().toLocaleString()}`,
+        system_prompt_content: systemPrompt,
+      })
+
+      await api.post(`/conversations/${session.id}/messages`, {
+        messages: messages.map((m, i) => ({
+          message_type: m.type,
+          content: m.content,
+          model_name: m.modelName || '',
+          tokens_used: m.tokensUsed || 0,
+          response_time_ms: m.responseTimeMs || 0,
+          message_order: i,
+        })),
+      })
+
+      toast.success('对话已保存')
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '保存失败')
     }
   }
 
   const modelKey = (opt: ModelOption) => `${opt.configId}-${opt.modelName}`
+  const hasStreamingContent = Object.keys(streamingContents).length > 0
 
   return (
     <div>
@@ -147,6 +329,18 @@ export default function ComparePage() {
                 onChange={(e) => setTemperature(parseFloat(e.target.value))}
                 className="w-full mt-1 accent-brutal-pink"
               />
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <label className="font-black text-sm flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useStreaming}
+                  onChange={(e) => setUseStreaming(e.target.checked)}
+                  className="accent-brutal-pink"
+                />
+                <Zap className="w-4 h-4" />
+                流式输出
+              </label>
             </div>
           </BrutalCard>
 
@@ -183,6 +377,54 @@ export default function ComparePage() {
               )}
             </div>
           </BrutalCard>
+
+          <BrutalCard>
+            <h3 className="font-black text-lg mb-3">AI 评分</h3>
+            <BrutalSelect
+              label="评分模型"
+              value={ratingModel}
+              onChange={(e: any) => setRatingModel(e.target.value)}
+              options={[
+                { value: '', label: '选择评分模型' },
+                ...modelOptions.map((opt) => ({
+                  value: modelKey(opt),
+                  label: `${opt.modelName} (${opt.config.provider})`,
+                })),
+              ]}
+            />
+            <BrutalButton
+              className="w-full mt-3"
+              size="sm"
+              onClick={handleRate}
+              disabled={isRating || !ratingModel || messages.length === 0}
+            >
+              <Star className="w-3 h-3 inline mr-1" />
+              {isRating ? '评分中...' : 'AI 自动评分'}
+            </BrutalButton>
+
+            {Object.keys(ratings).length > 0 && (
+              <div className="mt-3 space-y-2">
+                {Object.entries(ratings).map(([modelName, rating]: [string, any]) => (
+                  <div key={modelName} className="border-2 border-black p-2 bg-white">
+                    <div className="font-black text-xs">{modelName}</div>
+                    {rating.error ? (
+                      <p className="font-mono text-xs text-red-500">{rating.error}</p>
+                    ) : (
+                      <div className="font-mono text-xs mt-1">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-yellow-400 stroke-yellow-400" />
+                          <span className="font-black">{rating.overallScore || '?'}/5</span>
+                        </div>
+                        {rating.reasoning && (
+                          <p className="text-gray-600 mt-1 line-clamp-3">{rating.reasoning}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </BrutalCard>
         </div>
 
         <div className="lg:col-span-3">
@@ -215,7 +457,28 @@ export default function ComparePage() {
                   </div>
                 </div>
               ))}
-              {messages.length === 0 && (
+
+              {hasStreamingContent && Object.entries(streamingContents).map(([key, content]) => {
+                const [, ...rest] = key.split('-')
+                const name = rest.join('-')
+                return (
+                  <div key={`stream-${key}`} className="flex justify-start">
+                    <div className="max-w-[80%] p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                      <div className="flex items-center gap-2 mb-2 pb-2 border-b-2 border-black">
+                        <Bot className="w-4 h-4" />
+                        <span className="font-black text-sm">{name}</span>
+                        <Zap className="w-3 h-3 text-[#ff006e] animate-pulse" />
+                      </div>
+                      <p className="font-mono text-sm whitespace-pre-wrap">
+                        {content || '...'}
+                        <span className="inline-block w-2 h-4 bg-black animate-pulse ml-0.5" />
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {messages.length === 0 && !hasStreamingContent && (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <Zap className="w-12 h-12 mx-auto mb-4 text-gray-400" />
@@ -246,6 +509,11 @@ export default function ComparePage() {
                   <Send className="w-4 h-4 inline mr-1" />
                   {isRunning ? '发送中...' : '发送'}
                 </BrutalButton>
+                {messages.length > 0 && (
+                  <BrutalButton variant="ghost" onClick={handleSaveConversation}>
+                    <Save className="w-4 h-4 inline mr-1" /> 保存
+                  </BrutalButton>
+                )}
               </div>
             </div>
           </BrutalCard>
