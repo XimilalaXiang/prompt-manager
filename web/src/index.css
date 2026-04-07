@@ -38,3 +38,20 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb {
   background: black;
 }
+
+select option {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  padding: 8px 12px;
+  background: white;
+  color: black;
+}
+
+select option:checked {
+  background: #ccff00;
+  color: black;
+}
+
+select option:hover {
+  background: black;
+  color: white;
+}

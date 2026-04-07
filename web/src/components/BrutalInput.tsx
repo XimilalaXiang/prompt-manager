@@ -53,21 +53,27 @@ export function BrutalSelect({ label, options, className = '', ...props }: Selec
   return (
     <div className="space-y-1">
       {label && <label className="font-black text-sm md:text-base">{label}</label>}
-      <select
-        className={`
-          w-full rounded-none border-2 md:border-4 border-black font-mono
-          px-3 py-2 md:px-4 md:py-3 text-sm md:text-base bg-white
-          focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none
-          ${className}
-        `}
-        {...(props as any)}
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          className={`
+            w-full rounded-none border-2 md:border-4 border-black font-mono
+            px-3 py-2 md:px-4 md:py-3 text-sm md:text-base bg-white
+            focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none
+            appearance-none cursor-pointer pr-10
+            ${className}
+          `}
+          {...(props as any)}
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1.5L6 6.5L11 1.5" stroke="black" strokeWidth="2" strokeLinecap="square"/></svg>
+        </div>
+      </div>
     </div>
   )
 }

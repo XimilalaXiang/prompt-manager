@@ -193,17 +193,21 @@ export default function AIConfigsPage() {
                   <div className="border-2 border-black max-h-48 overflow-y-auto">
                     {availableModels
                       .filter((m) => !modelSearch || m.toLowerCase().includes(modelSearch.toLowerCase()))
-                      .map((m) => (
-                        <label
-                          key={m}
-                          className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-mono text-sm border-b border-gray-200 last:border-0 transition-colors ${selectedModels.includes(m) ? 'bg-[#ccff00]/30' : ''}`}
-                        >
-                          <span className={`w-4 h-4 border-2 border-black flex items-center justify-center flex-shrink-0 ${selectedModels.includes(m) ? 'bg-black' : 'bg-white'}`}>
-                            {selectedModels.includes(m) && <Check className="w-3 h-3 text-white" />}
-                          </span>
-                          <span className="truncate">{m}</span>
-                        </label>
-                      ))}
+                      .map((m) => {
+                        const isSelected = selectedModels.includes(m)
+                        return (
+                          <div
+                            key={m}
+                            onClick={() => toggleModel(m)}
+                            className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-gray-100 font-mono text-sm border-b border-black/10 last:border-0 transition-colors select-none ${isSelected ? 'bg-[#ccff00]/30' : ''}`}
+                          >
+                            <span className={`w-4 h-4 border-2 border-black flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-black' : 'bg-white'}`}>
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </span>
+                            <span className="truncate">{m}</span>
+                          </div>
+                        )
+                      })}
                   </div>
                 </>
               )}
