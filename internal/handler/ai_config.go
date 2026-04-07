@@ -1,7 +1,13 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/XimilalaXiang/prompt-manager/internal/database"
 	"github.com/XimilalaXiang/prompt-manager/internal/model"
@@ -201,4 +207,81 @@ func (h *AIConfigHandler) Test(c *gin.Context) {
 		"status":  "ok",
 		"message": "API key is valid and decryptable",
 	})
+}
+
+type FetchModelsRequest struct {
+	APIEndpoint string `json:"api_endpoint" binding:"required"`
+	APIKey      string `json:"api_key"`
+	ConfigID    string `json:"config_id"`
+}
+
+func (h *AIConfigHandler) FetchModels(c *gin.Context) {
+	var req FetchModelsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	apiKey := req.APIKey
+	if apiKey == "" && req.ConfigID != "" {
+		var config model.AIConfig
+		if err := database.DB.First(&config, "id = ?", req.ConfigID).Error; err == nil {
+			if decrypted, err := h.crypto.Decrypt(config.APIKeyEncrypted); err == nil {
+				apiKey = decrypted
+			}
+		}
+	}
+
+	baseURL := strings.TrimSuffix(req.APIEndpoint, "/")
+	baseURL = strings.TrimSuffix(baseURL, "/chat/completions")
+	baseURL = strings.TrimSuffix(baseURL, "/v1")
+	modelsURL := baseURL + "/v1/models"
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	httpReq, err := http.NewRequest("GET", modelsURL, nil)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid URL: %v", err)})
+		return
+	}
+	if apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("failed to connect: %v", err)})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to read response"})
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("provider returned %d: %s", resp.StatusCode, string(body))})
+		return
+	}
+
+	var result struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "failed to parse models response"})
+		return
+	}
+
+	models := make([]string, 0, len(result.Data))
+	for _, m := range result.Data {
+		if m.ID != "" {
+			models = append(models, m.ID)
+		}
+	}
+	sort.Strings(models)
+
+	c.JSON(http.StatusOK, gin.H{"models": models})
 }

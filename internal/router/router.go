@@ -77,6 +77,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 				aiConfigs.PUT("/:id", aiConfigHandler.Update)
 				aiConfigs.DELETE("/:id", aiConfigHandler.Delete)
 				aiConfigs.POST("/:id/test", aiConfigHandler.Test)
+			aiConfigs.POST("/fetch-models", aiConfigHandler.FetchModels)
 			}
 
 			compare := protected.Group("/compare")
