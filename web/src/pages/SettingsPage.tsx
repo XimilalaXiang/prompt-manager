@@ -1,12 +1,56 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from '../lib/api'
 import BrutalButton from '../components/BrutalButton'
 import BrutalCard from '../components/BrutalCard'
-import { Settings, Download, Upload } from 'lucide-react'
+import { BrutalInput } from '../components/BrutalInput'
+import { Settings, Download, Upload, Sliders, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+interface AppSetting {
+  id: string
+  setting_key: string
+  setting_value: string
+  created_at: string
+  updated_at: string
+}
+
+const settingsConfig = [
+  { key: 'default_temperature', label: '默认 Temperature', type: 'number', default: '0.7', hint: '对比页面默认温度值 (0-2)' },
+  { key: 'default_top_p', label: '默认 Top-P', type: 'number', default: '1.0', hint: '对比页面默认 Top-P 值 (0-1)' },
+  { key: 'default_max_tokens', label: '默认 Max Tokens', type: 'number', default: '2000', hint: 'AI 回复最大 Token 数' },
+  { key: 'app_title', label: '应用标题', type: 'text', default: 'Prompt Manager', hint: '显示在浏览器标签页的标题' },
+]
 
 export default function SettingsPage() {
   const [importFile, setImportFile] = useState<File | null>(null)
+  const [settings, setSettings] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { loadSettings() }, [])
+
+  const loadSettings = async () => {
+    try {
+      const { data } = await api.get('/settings')
+      const map: Record<string, string> = {}
+      for (const s of data || []) {
+        map[s.setting_key] = s.setting_value
+      }
+      setSettings(map)
+    } catch {}
+  }
+
+  const handleSaveSetting = async (key: string, value: string) => {
+    setSaving(true)
+    try {
+      await api.post('/settings', { key, value })
+      setSettings((prev) => ({ ...prev, [key]: value }))
+      toast.success('设置已保存')
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || '保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const exportPrompts = async (format: string) => {
     try {
@@ -57,6 +101,39 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
+        <BrutalCard className="md:col-span-2">
+          <h3 className="font-black text-xl mb-4 flex items-center gap-2">
+            <Sliders className="w-5 h-5" /> 系统设置
+          </h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            {settingsConfig.map((cfg) => {
+              const value = settings[cfg.key] ?? cfg.default
+              return (
+                <div key={cfg.key}>
+                  <BrutalInput
+                    label={cfg.label}
+                    type={cfg.type === 'number' ? 'number' : 'text'}
+                    step={cfg.type === 'number' ? '0.1' : undefined}
+                    value={value}
+                    onChange={(e) => setSettings((prev) => ({ ...prev, [cfg.key]: e.target.value }))}
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="font-mono text-xs text-gray-400">{cfg.hint}</p>
+                    <BrutalButton
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleSaveSetting(cfg.key, value)}
+                      disabled={saving}
+                    >
+                      <Save className="w-3 h-3" />
+                    </BrutalButton>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </BrutalCard>
+
         <BrutalCard>
           <h3 className="font-black text-xl mb-4 flex items-center gap-2">
             <Download className="w-5 h-5" /> 导出数据
