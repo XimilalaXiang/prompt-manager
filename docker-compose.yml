@@ -1,6 +1,6 @@
 services:
   prompt-manager:
-    build: .
+    image: ghcr.io/ximilalaxiang/prompt-manager:latest
     container_name: prompt-manager
     restart: unless-stopped
     ports:

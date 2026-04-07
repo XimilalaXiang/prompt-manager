@@ -1,0 +1,14 @@
+.git
+.github
+.env
+data/
+server
+*.exe
+*.dll
+*.so
+*.dylib
+tmp/
+web/node_modules/
+web/dist/
+README.md
+LICENSE
