@@ -175,7 +175,7 @@ func (h *BackupHandler) TestConnection(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"status":     "error",
-			"message":    fmt.Sprintf("连接失败: %v", err),
+			"message":    fmt.Sprintf("Connection failed: %v", err),
 			"latency_ms": latency,
 		})
 		return
@@ -183,7 +183,7 @@ func (h *BackupHandler) TestConnection(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":     "ok",
-		"message":    fmt.Sprintf("连接成功 (%dms)", latency),
+		"message":    fmt.Sprintf("Connection successful (%dms)", latency),
 		"latency_ms": latency,
 	})
 }
@@ -237,7 +237,7 @@ func (h *BackupHandler) CreateBackup(c *gin.Context) {
 
 	fi, _ := os.Stat(gzFile)
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "备份成功",
+		"message":  "Backup created",
 		"filename": filename,
 		"size":     fi.Size(),
 	})
@@ -301,7 +301,7 @@ func (h *BackupHandler) DeleteBackup(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
 }
 
 func (h *BackupHandler) RestoreBackup(c *gin.Context) {
@@ -366,7 +366,7 @@ func (h *BackupHandler) RestoreBackup(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "恢复成功，数据库已重新加载"})
+	c.JSON(http.StatusOK, gin.H{"message": "Restore complete, database reloaded"})
 }
 
 func compressFile(src, dst string) error {

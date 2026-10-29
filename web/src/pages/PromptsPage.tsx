@@ -35,7 +35,7 @@ export default function PromptsPage() {
       if (filter.favorite) params.set('favorite', filter.favorite)
       const { data } = await api.get(`/prompts?${params}`)
       setPrompts(data || [])
-    } catch { toast.error('加载失败') }
+    } catch { toast.error('Failed to load') }
   }
 
   const loadCategories = async () => {
@@ -50,10 +50,10 @@ export default function PromptsPage() {
       const payload = { ...form, tags: JSON.stringify(tagsList) }
       if (editing) {
         await api.put(`/prompts/${editing.id}`, payload)
-        toast.success('更新成功')
+        toast.success('Updated')
       } else {
         await api.post('/prompts', payload)
-        toast.success('创建成功')
+        toast.success('Created')
       }
       setShowForm(false)
       setEditing(null)
@@ -62,7 +62,7 @@ export default function PromptsPage() {
       setTagInput('')
       load()
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '保存失败')
+      toast.error(err.response?.data?.error || 'Failed to save')
     }
   }
 
@@ -82,12 +82,12 @@ export default function PromptsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除?')) return
+    if (!confirm('Delete this item?')) return
     try {
       await api.delete(`/prompts/${id}`)
-      toast.success('已删除')
+      toast.success('Deleted')
       load()
-    } catch { toast.error('删除失败') }
+    } catch { toast.error('Failed to delete') }
   }
 
   const handleFavorite = async (id: string) => {
@@ -117,29 +117,29 @@ export default function PromptsPage() {
     try {
       const { data } = await api.get(`/prompts/${p.id}/versions`)
       setVersions(data || [])
-    } catch { toast.error('加载版本历史失败') }
+    } catch { toast.error('Failed to load version history') }
   }
 
   const handleRollback = async (version: PromptVersion) => {
     if (!versionPrompt) return
-    if (!confirm(`确定回滚到版本 ${version.version_number}？当前内容将被替换。`)) return
+    if (!confirm(`Roll back to version ${version.version_number}? Current content will be replaced.`)) return
     try {
       await api.post(`/prompts/${versionPrompt.id}/rollback/${version.version_number}`)
-      toast.success(`已回滚到版本 ${version.version_number}`)
+      toast.success(`Rolled back to version ${version.version_number}`)
       setVersionPrompt(null)
       load()
-    } catch { toast.error('回滚失败') }
+    } catch { toast.error('Rollback failed') }
   }
 
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-black text-3xl md:text-5xl tracking-tight">提示词管理</h1>
-          <p className="font-mono text-sm md:text-base text-gray-600 mt-1">管理你的系统提示词和用户提示词</p>
+          <h1 className="font-black text-3xl md:text-5xl tracking-tight">Prompt Management</h1>
+          <p className="font-mono text-sm md:text-base text-gray-600 mt-1">Manage your system prompts and user prompts</p>
         </div>
         <BrutalButton onClick={() => { setEditing(null); setForm({ title: '', description: '', content: '', category_id: '', tags: '', prompt_type: 'user' }); setTagsList([]); setTagInput(''); setShowForm(true) }}>
-          <Plus className="w-4 h-4 inline mr-1" /> 新建提示词
+          <Plus className="w-4 h-4 inline mr-1" /> New Prompt
         </BrutalButton>
       </div>
 
@@ -147,7 +147,7 @@ export default function PromptsPage() {
         <div className="flex flex-wrap gap-3 items-end">
           <div className="flex-1 min-w-48">
             <BrutalInput
-              placeholder="搜索提示词..."
+              placeholder="Search prompts..."
               value={filter.search}
               onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
             />
@@ -157,9 +157,9 @@ export default function PromptsPage() {
             value={filter.type}
             onChange={(e: any) => setFilter((f) => ({ ...f, type: e.target.value }))}
             options={[
-              { value: '', label: '全部类型' },
-              { value: 'user', label: '用户提示词' },
-              { value: 'system', label: '系统提示词' },
+              { value: '', label: 'All Types' },
+              { value: 'user', label: 'User Prompt' },
+              { value: 'system', label: 'System Prompt' },
             ]}
           />
           <BrutalSelect
@@ -167,7 +167,7 @@ export default function PromptsPage() {
             value={filter.category}
             onChange={(e: any) => setFilter((f) => ({ ...f, category: e.target.value }))}
             options={[
-              { value: '', label: '全部分类' },
+              { value: '', label: 'All Categories' },
               ...categories.map((c) => ({ value: c.id, label: c.name })),
             ]}
           />
@@ -184,38 +184,38 @@ export default function PromptsPage() {
       {showForm && (
         <BrutalCard className="mb-6 border-brutal-pink" accentColor="#ff006e">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-xl">{editing ? '编辑提示词' : '新建提示词'}</h3>
+            <h3 className="font-black text-xl">{editing ? 'Edit Prompt' : 'New Prompt'}</h3>
             <button onClick={() => { setShowForm(false); setEditing(null) }}>
               <X className="w-5 h-5" />
             </button>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
-            <BrutalInput label="标题" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
+            <BrutalInput label="Title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
             <BrutalSelect
-              label="类型"
+              label="Type"
               value={form.prompt_type}
               onChange={(e: any) => setForm((f) => ({ ...f, prompt_type: e.target.value }))}
-              options={[{ value: 'user', label: '用户提示词' }, { value: 'system', label: '系统提示词' }]}
+              options={[{ value: 'user', label: 'User Prompt' }, { value: 'system', label: 'System Prompt' }]}
             />
-            <BrutalInput label="描述" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+            <BrutalInput label="Description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             <BrutalSelect
-              label="分类"
+              label="Category"
               value={form.category_id}
               onChange={(e: any) => setForm((f) => ({ ...f, category_id: e.target.value }))}
-              options={[{ value: '', label: '无分类' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+              options={[{ value: '', label: 'No Category' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
             />
             <div className="md:col-span-2">
-              <BrutalTextarea label="内容" value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} rows={6} required />
+              <BrutalTextarea label="Content" value={form.content} onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} rows={6} required />
             </div>
             <div className="md:col-span-2">
-              <label className="font-black text-sm md:text-base block mb-1">标签</label>
+              <label className="font-black text-sm md:text-base block mb-1">Tags</label>
               <div className="border-2 md:border-4 border-black rounded-none bg-white px-3 py-2 flex flex-wrap gap-1.5 items-center min-h-[44px] focus-within:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200">
                 {tagsList.map((tag, i) => (
                   <span
                     key={i}
                     className="border-2 border-black bg-[#ccff00] px-2 py-0.5 text-xs font-mono font-black cursor-pointer hover:bg-red-300 transition-colors flex items-center gap-1 select-none"
                     onClick={() => setTagsList((prev) => prev.filter((_, idx) => idx !== i))}
-                    title="点击移除"
+                    title="Click to remove"
                   >
                     {tag} <X className="w-3 h-3" />
                   </span>
@@ -237,16 +237,16 @@ export default function PromptsPage() {
                       setTagsList((prev) => prev.slice(0, -1))
                     }
                   }}
-                  placeholder={tagsList.length === 0 ? '输入标签后按回车添加...' : '继续添加...'}
+                  placeholder={tagsList.length === 0 ? 'Type a tag and press Enter...' : 'Add more...'}
                   className="flex-1 min-w-[120px] outline-none font-mono text-sm bg-transparent"
                 />
               </div>
-              <p className="font-mono text-xs text-gray-500 mt-1">输入标签名后按 Enter 添加，点击标签可移除，Backspace 可删除最后一个</p>
+              <p className="font-mono text-xs text-gray-500 mt-1">Type a tag name and press Enter to add it, click a tag to remove it, Backspace removes the last one</p>
             </div>
           </div>
           <div className="mt-4 flex gap-2">
-            <BrutalButton onClick={handleSave}>{editing ? '更新' : '创建'}</BrutalButton>
-            <BrutalButton variant="ghost" onClick={() => { setShowForm(false); setEditing(null) }}>取消</BrutalButton>
+            <BrutalButton onClick={handleSave}>{editing ? 'Update' : 'Create'}</BrutalButton>
+            <BrutalButton variant="ghost" onClick={() => { setShowForm(false); setEditing(null) }}>Cancel</BrutalButton>
           </div>
         </BrutalCard>
       )}
@@ -257,7 +257,7 @@ export default function PromptsPage() {
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
                 <BrutalBadge color={p.prompt_type === 'system' ? '#8338ec' : '#3a86ff'}>
-                  {p.prompt_type === 'system' ? '系统' : '用户'}
+                  {p.prompt_type === 'system' ? 'System' : 'User'}
                 </BrutalBadge>
                 {p.category && <BrutalBadge color={p.category.color}>{p.category.name}</BrutalBadge>}
               </div>
@@ -294,8 +294,8 @@ export default function PromptsPage() {
       {prompts.length === 0 && (
         <div className="text-center py-20">
           <Filter className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-          <p className="font-black text-xl">没有找到提示词</p>
-          <p className="font-mono text-sm text-gray-500 mt-1">创建你的第一个提示词开始吧</p>
+          <p className="font-black text-xl">No prompts found</p>
+          <p className="font-mono text-sm text-gray-500 mt-1">Create your first prompt to get started</p>
         </div>
       )}
 
@@ -305,7 +305,7 @@ export default function PromptsPage() {
             <div className="flex items-center justify-between px-6 py-4 border-b-4 border-black">
               <div>
                 <h3 className="font-black text-xl flex items-center gap-2">
-                  <History className="w-5 h-5" /> 版本历史
+                  <History className="w-5 h-5" /> Version History
                 </h3>
                 <p className="font-mono text-sm text-gray-600">{versionPrompt.title}</p>
               </div>
@@ -316,7 +316,7 @@ export default function PromptsPage() {
             <div className="flex-1 overflow-auto flex min-h-0">
               <div className="w-1/3 border-r-4 border-black overflow-auto">
                 {versions.length === 0 ? (
-                  <p className="font-mono text-sm text-gray-500 p-4">暂无版本记录</p>
+                  <p className="font-mono text-sm text-gray-500 p-4">No version history</p>
                 ) : (
                   versions.map((v) => (
                     <div
@@ -330,7 +330,7 @@ export default function PromptsPage() {
                           size="sm"
                           variant="ghost"
                           onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleRollback(v) }}
-                          title="回滚到此版本"
+                          title="Roll back to this version"
                         >
                           <RotateCcw className="w-3 h-3" />
                         </BrutalButton>
@@ -350,9 +350,9 @@ export default function PromptsPage() {
                 {selectedVersion ? (
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-black text-lg">版本 {selectedVersion.version_number} 内容</h4>
+                      <h4 className="font-black text-lg">Version {selectedVersion.version_number} content</h4>
                       <BrutalButton size="sm" onClick={() => handleRollback(selectedVersion)}>
-                        <RotateCcw className="w-3 h-3 mr-1" /> 回滚到此版本
+                        <RotateCcw className="w-3 h-3 mr-1" /> Roll back to this version
                       </BrutalButton>
                     </div>
                     <pre className="font-mono text-sm whitespace-pre-wrap bg-white border-2 border-black p-4 leading-relaxed">
@@ -363,7 +363,7 @@ export default function PromptsPage() {
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
                       <History className="w-10 h-10 mx-auto mb-2" />
-                      <p className="font-mono text-sm">选择左侧版本查看内容</p>
+                      <p className="font-mono text-sm">Select a version on the left to view its content</p>
                     </div>
                   </div>
                 )}

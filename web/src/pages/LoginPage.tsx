@@ -18,17 +18,17 @@ export default function LoginPage() {
     try {
       if (isConfigured) {
         await login(password)
-        toast.success('登录成功!')
+        toast.success('Logged in!')
       } else {
         if (password.length < 6) {
-          toast.error('密码至少 6 个字符')
+          toast.error('Password must be at least 6 characters')
           return
         }
         await setup(password)
-        toast.success('设置完成!')
+        toast.success('Setup complete!')
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '操作失败')
+      toast.error(err.response?.data?.error || 'Operation failed')
     } finally {
       setLoading(false)
     }
@@ -45,7 +45,7 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="font-mono text-sm md:text-base">
-            AI 提示词管理与多模型对比平台
+            AI Prompt Management and Multi-Model Comparison Platform
           </p>
         </div>
 
@@ -54,21 +54,21 @@ export default function LoginPage() {
           <div className="flex items-center gap-2 mb-6">
             <Lock className="w-5 h-5" />
             <h2 className="font-black text-xl md:text-2xl">
-              {isConfigured ? '登录' : '初始设置'}
+              {isConfigured ? 'Log In' : 'Initial Setup'}
             </h2>
           </div>
 
           {!isConfigured && (
             <p className="font-mono text-sm text-gray-600 mb-4 border-l-4 border-brutal-pink pl-3">
-              首次使用，请设置一个密码来保护你的数据。
+              First time here? Set a password to protect your data.
             </p>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <BrutalInput
               type="password"
-              label="密码"
-              placeholder={isConfigured ? '输入密码' : '设置密码 (至少6位)'}
+              label="Password"
+              placeholder={isConfigured ? 'Enter password' : 'Set a password (min 6 characters)'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -80,7 +80,7 @@ export default function LoginPage() {
               className="w-full"
               size="lg"
             >
-              {loading ? '处理中...' : isConfigured ? '登录' : '开始使用'}
+              {loading ? 'Processing...' : isConfigured ? 'Log In' : 'Get Started'}
             </BrutalButton>
           </form>
         </div>

@@ -59,7 +59,7 @@ export default function ComparePage() {
         }
       }
       setModelOptions(options)
-    } catch { toast.error('加载AI配置失败') }
+    } catch { toast.error('Failed to load AI configs') }
   }
 
   const toggleModel = (key: string) => {
@@ -85,7 +85,7 @@ export default function ComparePage() {
 
   const sendMessage = async () => {
     if (!userInput.trim() || selectedModels.length === 0) {
-      toast.error('请输入消息并选择至少一个模型')
+      toast.error('Enter a message and select at least one model')
       return
     }
 
@@ -194,7 +194,7 @@ export default function ComparePage() {
       setMessages((prev) => [...prev, ...aiMessages])
       setStreamingContents({})
     } catch (err: any) {
-      toast.error(err.message || '流式请求失败')
+      toast.error(err.message || 'Streaming request failed')
       setStreamingContents({})
     }
   }
@@ -219,19 +219,19 @@ export default function ComparePage() {
       }))
       setMessages((prev) => [...prev, ...aiMessages])
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '发送失败')
+      toast.error(err.response?.data?.error || 'Failed to send')
     }
   }
 
   const handleRate = async () => {
     if (!ratingModel) {
-      toast.error('请先选择评分模型')
+      toast.error('Select a rating model first')
       return
     }
     const assistantMsgs = messages.filter((m) => m.type === 'assistant')
     const lastUserMsg = [...messages].reverse().find((m) => m.type === 'user')
     if (!lastUserMsg || assistantMsgs.length === 0) {
-      toast.error('需要至少一条对话才能评分')
+      toast.error('At least one conversation is needed for rating')
       return
     }
 
@@ -239,7 +239,7 @@ export default function ComparePage() {
       (m) => m.timestamp >= lastUserMsg.timestamp
     )
     if (lastAssistantMsgs.length === 0) {
-      toast.error('没有可评分的回复')
+      toast.error('No replies to rate')
       return
     }
 
@@ -262,9 +262,9 @@ export default function ComparePage() {
         },
       })
       setRatings(data.ratings || {})
-      toast.success('AI 评分完成')
+      toast.success('AI rating complete')
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '评分失败')
+      toast.error(err.response?.data?.error || 'Rating failed')
     } finally {
       setIsRating(false)
     }
@@ -272,12 +272,12 @@ export default function ComparePage() {
 
   const handleSaveConversation = async () => {
     if (messages.length === 0) {
-      toast.error('没有对话内容可保存')
+      toast.error('No conversation to save')
       return
     }
     try {
       const { data: session } = await api.post('/conversations', {
-        title: `对话 ${new Date().toLocaleString()}`,
+        title: `Conversation ${new Date().toLocaleString()}`,
         system_prompt_content: systemPrompt,
         model_parameters: JSON.stringify({ temperature, topP }),
       })
@@ -295,16 +295,16 @@ export default function ComparePage() {
 
       if (Object.keys(ratings).length > 0 || selectedModels.length > 0) {
         await api.post(`/conversations/${session.id}/comparisons`, {
-          title: `对比 ${new Date().toLocaleString()}`,
+          title: `Comparison ${new Date().toLocaleString()}`,
           selected_ai_configs: JSON.stringify(selectedModels),
           ratings: JSON.stringify(ratings),
           model_parameters: JSON.stringify({ temperature, topP }),
         })
       }
 
-      toast.success('对话和对比结果已保存')
+      toast.success('Conversation and comparison saved')
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '保存失败')
+      toast.error(err.response?.data?.error || 'Failed to save')
     }
   }
 
@@ -314,23 +314,23 @@ export default function ComparePage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-black text-3xl md:text-5xl tracking-tight">AI 多模型对比</h1>
-        <p className="font-mono text-sm text-gray-600 mt-1">与多个AI模型同时对话并对比响应效果</p>
+        <h1 className="font-black text-3xl md:text-5xl tracking-tight">AI Multi-Model Comparison</h1>
+        <p className="font-mono text-sm text-gray-600 mt-1">Chat with multiple AI models at once and compare their responses</p>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-4">
           <BrutalCard>
-            <h3 className="font-black text-lg mb-3">对话设置</h3>
+            <h3 className="font-black text-lg mb-3">Chat Settings</h3>
             <BrutalTextarea
-              label="系统提示词"
+              label="System Prompt"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="定义AI的角色和行为..."
+              placeholder="Define the AI role and behavior..."
               rows={4}
             />
             <div className="mt-4">
-              <label className="font-black text-sm">温度 (Temperature): {temperature}</label>
+              <label className="font-black text-sm">Temperature: {temperature}</label>
               <input
                 type="range"
                 min="0"
@@ -340,7 +340,7 @@ export default function ComparePage() {
                 onChange={(e) => setTemperature(parseFloat(e.target.value))}
                 className="w-full mt-1 accent-brutal-pink"
               />
-              <p className="font-mono text-xs text-gray-400 mt-0.5">越高越随机，越低越确定</p>
+              <p className="font-mono text-xs text-gray-400 mt-0.5">Higher is more random, lower is more deterministic</p>
             </div>
             <div className="mt-4">
               <label className="font-black text-sm">Top-P: {topP}</label>
@@ -353,7 +353,7 @@ export default function ComparePage() {
                 onChange={(e) => setTopP(parseFloat(e.target.value))}
                 className="w-full mt-1 accent-brutal-pink"
               />
-              <p className="font-mono text-xs text-gray-400 mt-0.5">核采样阈值，1.0 = 全部词</p>
+              <p className="font-mono text-xs text-gray-400 mt-0.5">Nucleus sampling threshold, 1.0 = all tokens</p>
             </div>
             <div className="mt-4 flex items-center gap-2">
               <label className="font-black text-sm flex items-center gap-2 cursor-pointer">
@@ -364,13 +364,13 @@ export default function ComparePage() {
                   className="accent-brutal-pink"
                 />
                 <Zap className="w-4 h-4" />
-                流式输出
+                Stream output
               </label>
             </div>
           </BrutalCard>
 
           <BrutalCard>
-            <h3 className="font-black text-lg mb-3">选择模型</h3>
+            <h3 className="font-black text-lg mb-3">Select Models</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {modelOptions.map((opt) => {
                 const key = modelKey(opt)
@@ -398,19 +398,19 @@ export default function ComparePage() {
                 )
               })}
               {modelOptions.length === 0 && (
-                <p className="font-mono text-sm text-gray-500">先在 AI配置 中添加模型</p>
+                <p className="font-mono text-sm text-gray-500">Add models in AI Configs first</p>
               )}
             </div>
           </BrutalCard>
 
           <BrutalCard>
-            <h3 className="font-black text-lg mb-3">AI 评分</h3>
+            <h3 className="font-black text-lg mb-3">AI Rating</h3>
             <BrutalSelect
-              label="评分模型"
+              label="Rating Model"
               value={ratingModel}
               onChange={(e: any) => setRatingModel(e.target.value)}
               options={[
-                { value: '', label: '选择评分模型' },
+                { value: '', label: 'Select rating model' },
                 ...modelOptions.map((opt) => ({
                   value: modelKey(opt),
                   label: `${opt.modelName} (${opt.config.provider})`,
@@ -424,7 +424,7 @@ export default function ComparePage() {
               disabled={isRating || !ratingModel || messages.length === 0}
             >
               <Star className="w-3 h-3 inline mr-1" />
-              {isRating ? '评分中...' : 'AI 自动评分'}
+              {isRating ? 'Rating...' : 'Auto Rate with AI'}
             </BrutalButton>
 
             {Object.keys(ratings).length > 0 && (
@@ -507,8 +507,8 @@ export default function ComparePage() {
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <Zap className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <p className="font-black text-xl">开始对话</p>
-                    <p className="font-mono text-sm text-gray-500">选择模型并发送消息</p>
+                    <p className="font-black text-xl">Start a conversation</p>
+                    <p className="font-mono text-sm text-gray-500">Select models and send a message</p>
                   </div>
                 </div>
               )}
@@ -519,7 +519,7 @@ export default function ComparePage() {
               <BrutalTextarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder="输入消息..."
+                placeholder="Type a message..."
                 rows={3}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
@@ -532,11 +532,11 @@ export default function ComparePage() {
               <div className="flex gap-2 mt-3">
                 <BrutalButton onClick={sendMessage} disabled={isRunning || !userInput.trim()} className="flex-1">
                   <Send className="w-4 h-4 inline mr-1" />
-                  {isRunning ? '发送中...' : '发送'}
+                  {isRunning ? 'Sending...' : 'Send'}
                 </BrutalButton>
                 {messages.length > 0 && (
                   <BrutalButton variant="ghost" onClick={handleSaveConversation}>
-                    <Save className="w-4 h-4 inline mr-1" /> 保存
+                    <Save className="w-4 h-4 inline mr-1" /> Save
                   </BrutalButton>
                 )}
               </div>

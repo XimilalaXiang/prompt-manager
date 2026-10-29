@@ -7,13 +7,13 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-  { path: '/prompts', label: '提示词', icon: FileText },
-  { path: '/compare', label: '对比', icon: GitCompare },
-  { path: '/knowledge', label: '知识库', icon: BookOpen },
-  { path: '/conversations', label: '对话历史', icon: History },
-  { path: '/categories', label: '分类', icon: Tag },
-  { path: '/ai-configs', label: 'AI配置', icon: Zap },
-  { path: '/settings', label: '设置', icon: Settings },
+  { path: '/prompts', label: 'Prompts', icon: FileText },
+  { path: '/compare', label: 'Compare', icon: GitCompare },
+  { path: '/knowledge', label: 'Knowledge', icon: BookOpen },
+  { path: '/conversations', label: 'Conversations', icon: History },
+  { path: '/categories', label: 'Categories', icon: Tag },
+  { path: '/ai-configs', label: 'AI Configs', icon: Zap },
+  { path: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -106,7 +106,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   border-2 border-black bg-white text-red-600 hover:bg-red-50 transition-all"
               >
                 <LogOut className="w-4 h-4" />
-                退出登录
+                Log out
               </button>
             </div>
           </div>

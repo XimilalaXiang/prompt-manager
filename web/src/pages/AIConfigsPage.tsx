@@ -35,7 +35,7 @@ export default function AIConfigsPage() {
     try {
       const { data } = await api.get('/ai-configs')
       setConfigs(data || [])
-    } catch { toast.error('加载失败') }
+    } catch { toast.error('Failed to load') }
   }
 
   const handleSave = async () => {
@@ -49,17 +49,17 @@ export default function AIConfigsPage() {
       }
       if (editing) {
         await api.put(`/ai-configs/${editing.id}`, payload)
-        toast.success('更新成功')
+        toast.success('Updated')
       } else {
         await api.post('/ai-configs', payload)
-        toast.success('创建成功')
+        toast.success('Created')
       }
       setShowForm(false)
       setEditing(null)
       resetForm()
       load()
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '保存失败')
+      toast.error(err.response?.data?.error || 'Failed to save')
     }
   }
 
@@ -88,7 +88,7 @@ export default function AIConfigsPage() {
 
   const handleFetchModels = async () => {
     if (!form.api_endpoint && !form.api_key && !editing) {
-      toast.error('请先填写 API 端点和 API Key')
+      toast.error('Enter the API endpoint and API Key first')
       return
     }
     setFetchingModels(true)
@@ -100,9 +100,9 @@ export default function AIConfigsPage() {
       })
       const models: string[] = data.models || []
       setAvailableModels(models)
-      toast.success(`获取到 ${models.length} 个模型`)
+      toast.success(`Fetched ${models.length} models`)
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '获取模型列表失败')
+      toast.error(err.response?.data?.error || 'Failed to fetch model list')
     } finally {
       setFetchingModels(false)
     }
@@ -115,12 +115,12 @@ export default function AIConfigsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除?')) return
+    if (!confirm('Delete this item?')) return
     try {
       await api.delete(`/ai-configs/${id}`)
-      toast.success('已删除')
+      toast.success('Deleted')
       load()
-    } catch { toast.error('删除失败') }
+    } catch { toast.error('Failed to delete') }
   }
 
   const handleTest = async (id: string) => {
@@ -134,7 +134,7 @@ export default function AIConfigsPage() {
         toast.error(`${data.message} [${data.model || ''}]`, { duration: 5000 })
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '测试失败')
+      toast.error(err.response?.data?.error || 'Test failed')
     } finally {
       setTestingId(null)
     }
@@ -148,41 +148,41 @@ export default function AIConfigsPage() {
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-black text-3xl md:text-5xl tracking-tight">AI 配置</h1>
-          <p className="font-mono text-sm text-gray-600 mt-1">管理AI提供商和模型配置</p>
+          <h1 className="font-black text-3xl md:text-5xl tracking-tight">AI Configs</h1>
+          <p className="font-mono text-sm text-gray-600 mt-1">Manage AI providers and model configurations</p>
         </div>
         <BrutalButton onClick={() => { setEditing(null); resetForm(); setShowForm(true) }}>
-          <Plus className="w-4 h-4 inline mr-1" /> 新建配置
+          <Plus className="w-4 h-4 inline mr-1" /> New Config
         </BrutalButton>
       </div>
 
       {showForm && (
         <BrutalCard className="mb-6" accentColor="#ff006e">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-xl">{editing ? '编辑配置' : '新建配置'}</h3>
+            <h3 className="font-black text-xl">{editing ? 'Edit Config' : 'New Config'}</h3>
             <button onClick={() => { setShowForm(false); setEditing(null) }}><X className="w-5 h-5" /></button>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
-            <BrutalInput label="名称" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
+            <BrutalInput label="Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
             <BrutalSelect
-              label="提供商"
+              label="Provider"
               value={form.provider}
               onChange={(e: any) => setForm((f) => ({ ...f, provider: e.target.value }))}
               options={[
                 { value: 'openai', label: 'OpenAI' },
                 { value: 'claude', label: 'Claude' },
                 { value: 'gemini', label: 'Gemini' },
-                { value: 'custom', label: '自定义 (OpenAI兼容)' },
+                { value: 'custom', label: 'Custom (OpenAI-compatible)' },
               ]}
             />
-            <BrutalInput label="API 端点" value={form.api_endpoint} onChange={(e) => setForm((f) => ({ ...f, api_endpoint: e.target.value }))} placeholder="https://api.openai.com/v1/chat/completions" required />
-            <BrutalInput label="API Key" type="password" value={form.api_key} onChange={(e) => setForm((f) => ({ ...f, api_key: e.target.value }))} placeholder={editing ? '留空保持不变' : '输入API Key'} />
+            <BrutalInput label="API Endpoint" value={form.api_endpoint} onChange={(e) => setForm((f) => ({ ...f, api_endpoint: e.target.value }))} placeholder="https://api.openai.com/v1/chat/completions" required />
+            <BrutalInput label="API Key" type="password" value={form.api_key} onChange={(e) => setForm((f) => ({ ...f, api_key: e.target.value }))} placeholder={editing ? 'Leave blank to keep unchanged' : 'Enter API Key'} />
             <div className="md:col-span-2">
               <div className="flex items-center justify-between mb-2">
-                <label className="font-black text-sm">模型列表</label>
+                <label className="font-black text-sm">Models</label>
                 <BrutalButton size="sm" onClick={handleFetchModels} disabled={fetchingModels}>
                   <RefreshCw className={`w-3 h-3 inline mr-1 ${fetchingModels ? 'animate-spin' : ''}`} />
-                  {fetchingModels ? '获取中...' : '获取模型列表'}
+                  {fetchingModels ? 'Fetching...' : 'Fetch Models'}
                 </BrutalButton>
               </div>
               {selectedModels.length > 0 && (
@@ -192,7 +192,7 @@ export default function AIConfigsPage() {
                       key={m}
                       className="border-2 border-black bg-[#ccff00] px-2 py-0.5 text-xs font-mono cursor-pointer hover:bg-red-300 transition-colors"
                       onClick={() => toggleModel(m)}
-                      title="点击移除"
+                      title="Click to remove"
                     >
                       {m} ×
                     </span>
@@ -205,7 +205,7 @@ export default function AIConfigsPage() {
                     type="text"
                     value={modelSearch}
                     onChange={(e) => setModelSearch(e.target.value)}
-                    placeholder="搜索模型..."
+                    placeholder="Search models..."
                     className="w-full border-2 border-black rounded-none px-3 py-1.5 font-mono text-sm mb-2 focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none transition-all duration-200"
                   />
                   <div className="border-2 border-black max-h-48 overflow-y-auto">
@@ -230,15 +230,15 @@ export default function AIConfigsPage() {
                 </>
               )}
               {availableModels.length === 0 && selectedModels.length === 0 && (
-                <p className="font-mono text-xs text-gray-500">填写 API 端点和 Key 后，点击「获取模型列表」自动加载可用模型</p>
+                <p className="font-mono text-xs text-gray-500">After entering the API endpoint and Key, click Fetch Models to load available models</p>
               )}
             </div>
             <BrutalInput label="Max Tokens" type="number" value={form.max_tokens} onChange={(e) => setForm((f) => ({ ...f, max_tokens: Number(e.target.value) }))} />
             <BrutalInput label="Temperature" type="number" step="0.1" value={form.temperature} onChange={(e) => setForm((f) => ({ ...f, temperature: Number(e.target.value) }))} />
           </div>
           <div className="mt-4 flex gap-2">
-            <BrutalButton onClick={handleSave}>{editing ? '更新' : '创建'}</BrutalButton>
-            <BrutalButton variant="ghost" onClick={() => { setShowForm(false); setEditing(null) }}>取消</BrutalButton>
+            <BrutalButton onClick={handleSave}>{editing ? 'Update' : 'Create'}</BrutalButton>
+            <BrutalButton variant="ghost" onClick={() => { setShowForm(false); setEditing(null) }}>Cancel</BrutalButton>
           </div>
         </BrutalCard>
       )}
@@ -269,7 +269,7 @@ export default function AIConfigsPage() {
                 variant="ghost"
                 onClick={() => handleTest(c.id)}
                 disabled={testingId === c.id}
-                title="测试连接"
+                title="Test connection"
               >
                 {testingId === c.id
                   ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -289,8 +289,8 @@ export default function AIConfigsPage() {
       {configs.length === 0 && (
         <div className="text-center py-20">
           <Zap className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-          <p className="font-black text-xl">没有AI配置</p>
-          <p className="font-mono text-sm text-gray-500 mt-1">添加你的第一个AI提供商配置</p>
+          <p className="font-black text-xl">No AI configs</p>
+          <p className="font-mono text-sm text-gray-500 mt-1">Add your first AI provider config</p>
         </div>
       )}
     </div>

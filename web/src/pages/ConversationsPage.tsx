@@ -20,24 +20,24 @@ export default function ConversationsPage() {
 
   const load = async () => {
     try { const { data } = await api.get('/conversations'); setSessions(data || []) }
-    catch { toast.error('加载失败') }
+    catch { toast.error('Failed to load') }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除?')) return
+    if (!confirm('Delete this item?')) return
     try {
       await api.delete(`/conversations/${id}`)
-      toast.success('已删除')
+      toast.success('Deleted')
       if (detail?.session.id === id) setDetail(null)
       load()
-    } catch { toast.error('删除失败') }
+    } catch { toast.error('Failed to delete') }
   }
 
   const handleView = async (id: string) => {
     try {
       const { data } = await api.get(`/conversations/${id}`)
       setDetail(data)
-    } catch { toast.error('加载对话详情失败') }
+    } catch { toast.error('Failed to load conversation details') }
   }
 
   const parseRatings = (ratingsJson: string): Record<string, any> => {
@@ -47,8 +47,8 @@ export default function ConversationsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-black text-3xl md:text-5xl tracking-tight">对话历史</h1>
-        <p className="font-mono text-sm text-gray-600 mt-1">查看保存的对话和对比结果</p>
+        <h1 className="font-black text-3xl md:text-5xl tracking-tight">Conversation History</h1>
+        <p className="font-mono text-sm text-gray-600 mt-1">View saved conversations and comparison results</p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -71,7 +71,7 @@ export default function ConversationsPage() {
                     </p>
                     {s.system_prompt_content && (
                       <p className="font-mono text-xs text-gray-500 mt-1 truncate">
-                        系统提示词: {s.system_prompt_content.substring(0, 60)}...
+                        System prompt: {s.system_prompt_content.substring(0, 60)}...
                       </p>
                     )}
                   </div>
@@ -89,8 +89,8 @@ export default function ConversationsPage() {
           {sessions.length === 0 && (
             <div className="text-center py-20">
               <History className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p className="font-black text-xl">没有对话历史</p>
-              <p className="font-mono text-sm text-gray-500 mt-1">在对比页面保存对话后这里会显示</p>
+              <p className="font-black text-xl">No conversation history</p>
+              <p className="font-mono text-sm text-gray-500 mt-1">Conversations saved from the Compare page will appear here</p>
             </div>
           )}
         </div>
@@ -112,7 +112,7 @@ export default function ConversationsPage() {
 
               {detail.session.system_prompt_content && (
                 <div className="border-2 border-black bg-gray-50 p-3 mb-4">
-                  <p className="font-black text-xs mb-1">系统提示词</p>
+                  <p className="font-black text-xs mb-1">System Prompt</p>
                   <p className="font-mono text-sm whitespace-pre-wrap">{detail.session.system_prompt_content}</p>
                 </div>
               )}
@@ -150,7 +150,7 @@ export default function ConversationsPage() {
                 ))}
 
                 {detail.messages.length === 0 && (
-                  <p className="text-center font-mono text-sm text-gray-500 py-8">暂无消息记录</p>
+                  <p className="text-center font-mono text-sm text-gray-500 py-8">No messages</p>
                 )}
               </div>
             </BrutalCard>
@@ -158,7 +158,7 @@ export default function ConversationsPage() {
             {detail.comparisons.length > 0 && (
               <BrutalCard>
                 <h3 className="font-black text-lg mb-3 flex items-center gap-2">
-                  <Star className="w-5 h-5" /> 对比评分结果
+                  <Star className="w-5 h-5" /> Comparison Ratings
                 </h3>
                 {detail.comparisons.map((comp) => {
                   const r = parseRatings(comp.ratings)

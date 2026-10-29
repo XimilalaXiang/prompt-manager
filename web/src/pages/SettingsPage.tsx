@@ -15,10 +15,10 @@ interface AppSetting {
 }
 
 const settingsConfig = [
-  { key: 'default_temperature', label: '默认 Temperature', type: 'number', default: '0.7', hint: '对比页面默认温度值 (0-2)' },
-  { key: 'default_top_p', label: '默认 Top-P', type: 'number', default: '1.0', hint: '对比页面默认 Top-P 值 (0-1)' },
-  { key: 'default_max_tokens', label: '默认 Max Tokens', type: 'number', default: '2000', hint: 'AI 回复最大 Token 数' },
-  { key: 'app_title', label: '应用标题', type: 'text', default: 'Prompt Manager', hint: '显示在浏览器标签页的标题' },
+  { key: 'default_temperature', label: 'Default Temperature', type: 'number', default: '0.7', hint: 'Default temperature on the Compare page (0-2)' },
+  { key: 'default_top_p', label: 'Default Top-P', type: 'number', default: '1.0', hint: 'Default Top-P on the Compare page (0-1)' },
+  { key: 'default_max_tokens', label: 'Default Max Tokens', type: 'number', default: '2000', hint: 'Maximum tokens in an AI reply' },
+  { key: 'app_title', label: 'App Title', type: 'text', default: 'Prompt Manager', hint: 'Title shown in the browser tab' },
 ]
 
 export default function SettingsPage() {
@@ -49,9 +49,9 @@ export default function SettingsPage() {
     try {
       await api.post('/settings', { key, value })
       setSettings((prev) => ({ ...prev, [key]: value }))
-      toast.success('设置已保存')
+      toast.success('Settings saved')
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '保存失败')
+      toast.error(err.response?.data?.error || 'Failed to save')
     } finally {
       setSaving(false)
     }
@@ -73,11 +73,11 @@ export default function SettingsPage() {
     setBackupLoading('config')
     try {
       await api.post('/backup/webdav/config', webdav)
-      toast.success('WebDAV 配置已保存')
+      toast.success('WebDAV config saved')
       setWebdavConfigured(true)
       if (webdav.password) setWebdavHasPassword(true)
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '保存失败')
+      toast.error(err.response?.data?.error || 'Failed to save')
     } finally { setBackupLoading('') }
   }
 
@@ -88,7 +88,7 @@ export default function SettingsPage() {
       if (data.status === 'ok') toast.success(data.message)
       else toast.error(data.message)
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '测试失败')
+      toast.error(err.response?.data?.error || 'Test failed')
     } finally { setBackupLoading('') }
   }
 
@@ -99,7 +99,7 @@ export default function SettingsPage() {
       toast.success(`${data.message} — ${data.filename}`)
       loadBackups()
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '备份失败')
+      toast.error(err.response?.data?.error || 'Backup failed')
     } finally { setBackupLoading('') }
   }
 
@@ -111,22 +111,22 @@ export default function SettingsPage() {
   }
 
   const deleteBackup = async (name: string) => {
-    if (!confirm(`确定删除备份 ${name}？`)) return
+    if (!confirm(`Delete backup ${name}?`)) return
     try {
       await api.delete(`/backup/webdav/${name}`)
-      toast.success('已删除')
+      toast.success('Deleted')
       loadBackups()
-    } catch { toast.error('删除失败') }
+    } catch { toast.error('Failed to delete') }
   }
 
   const restoreBackup = async (name: string) => {
-    if (!confirm(`确定从 ${name} 恢复？当前数据将被覆盖！`)) return
+    if (!confirm(`Restore from ${name}? Current data will be overwritten!`)) return
     setBackupLoading('restore-' + name)
     try {
       const { data } = await api.post(`/backup/webdav/restore/${name}`)
       toast.success(data.message)
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '恢复失败')
+      toast.error(err.response?.data?.error || 'Restore failed')
     } finally { setBackupLoading('') }
   }
 
@@ -148,8 +148,8 @@ export default function SettingsPage() {
       a.download = `prompts.${format === 'json' ? 'json' : 'md'}`
       a.click()
       URL.revokeObjectURL(url)
-      toast.success('导出成功')
-    } catch { toast.error('导出失败') }
+      toast.success('Exported')
+    } catch { toast.error('Export failed') }
   }
 
   const exportConfigs = async () => {
@@ -162,8 +162,8 @@ export default function SettingsPage() {
       a.download = 'ai-configs.json'
       a.click()
       URL.revokeObjectURL(url)
-      toast.success('导出成功')
-    } catch { toast.error('导出失败') }
+      toast.success('Exported')
+    } catch { toast.error('Export failed') }
   }
 
   const importPrompts = async () => {
@@ -172,22 +172,22 @@ export default function SettingsPage() {
       const text = await importFile.text()
       const json = JSON.parse(text)
       const { data } = await api.post('/import/prompts', { prompts: json.prompts || json })
-      toast.success(`导入成功: ${data.imported}/${data.total}`)
+      toast.success(`Imported: ${data.imported}/${data.total}`)
       setImportFile(null)
-    } catch { toast.error('导入失败，请检查文件格式') }
+    } catch { toast.error('Import failed, please check the file format') }
   }
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-black text-3xl md:text-5xl tracking-tight">设置</h1>
-        <p className="font-mono text-sm text-gray-600 mt-1">系统配置和数据管理</p>
+        <h1 className="font-black text-3xl md:text-5xl tracking-tight">Settings</h1>
+        <p className="font-mono text-sm text-gray-600 mt-1">System configuration and data management</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         <BrutalCard className="md:col-span-2">
           <h3 className="font-black text-xl mb-4 flex items-center gap-2">
-            <Sliders className="w-5 h-5" /> 系统设置
+            <Sliders className="w-5 h-5" /> System Settings
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
             {settingsConfig.map((cfg) => {
@@ -220,7 +220,7 @@ export default function SettingsPage() {
 
         <BrutalCard className="md:col-span-2">
           <h3 className="font-black text-xl mb-4 flex items-center gap-2">
-            <CloudUpload className="w-5 h-5" /> WebDAV 备份
+            <CloudUpload className="w-5 h-5" /> WebDAV Backup
           </h3>
           <div className="grid md:grid-cols-2 gap-4 mb-4">
             <BrutalInput
@@ -230,20 +230,20 @@ export default function SettingsPage() {
               placeholder="https://dav.example.com"
             />
             <BrutalInput
-              label="用户名"
+              label="Username"
               value={webdav.username}
               onChange={(e) => setWebdav((w) => ({ ...w, username: e.target.value }))}
               placeholder="username"
             />
             <BrutalInput
-              label="密码"
+              label="Password"
               type="password"
               value={webdav.password}
               onChange={(e) => setWebdav((w) => ({ ...w, password: e.target.value }))}
-              placeholder={webdavHasPassword ? '留空保持不变' : '输入密码'}
+              placeholder={webdavHasPassword ? 'Leave blank to keep unchanged' : 'Enter password'}
             />
             <BrutalInput
-              label="远程路径"
+              label="Remote Path"
               value={webdav.path}
               onChange={(e) => setWebdav((w) => ({ ...w, path: e.target.value }))}
               placeholder="/prompt-manager-backups"
@@ -252,21 +252,21 @@ export default function SettingsPage() {
           <div className="flex gap-2 mb-4">
             <BrutalButton size="sm" onClick={saveWebDAVConfig} disabled={backupLoading === 'config' || !webdav.url}>
               {backupLoading === 'config' ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : <Save className="w-3 h-3 inline mr-1" />}
-              保存配置
+              Save Config
             </BrutalButton>
             <BrutalButton size="sm" variant="ghost" onClick={testWebDAV} disabled={!!backupLoading || !webdavConfigured}>
               {backupLoading === 'test' ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : <Wifi className="w-3 h-3 inline mr-1" />}
-              测试连接
+              Test Connection
             </BrutalButton>
             <BrutalButton size="sm" variant="secondary" onClick={createBackup} disabled={!!backupLoading || !webdavConfigured}>
               {backupLoading === 'create' ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : <CloudUpload className="w-3 h-3 inline mr-1" />}
-              立即备份
+              Back Up Now
             </BrutalButton>
           </div>
 
           {backups.length > 0 && (
             <div>
-              <h4 className="font-black text-sm mb-2">备份列表</h4>
+              <h4 className="font-black text-sm mb-2">Backups</h4>
               <div className="border-2 border-black max-h-48 overflow-y-auto">
                 {backups.map((b) => (
                   <div key={b.name} className="flex items-center justify-between px-3 py-2 border-b border-black/10 last:border-0 font-mono text-xs">
@@ -281,7 +281,7 @@ export default function SettingsPage() {
                         variant="ghost"
                         onClick={() => restoreBackup(b.name)}
                         disabled={!!backupLoading}
-                        title="恢复"
+                        title="Restore"
                       >
                         {backupLoading === 'restore-' + b.name
                           ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -292,7 +292,7 @@ export default function SettingsPage() {
                         variant="danger"
                         onClick={() => deleteBackup(b.name)}
                         disabled={!!backupLoading}
-                        title="删除"
+                        title="Delete"
                       >
                         <Trash2 className="w-3 h-3" />
                       </BrutalButton>
@@ -304,30 +304,30 @@ export default function SettingsPage() {
           )}
 
           {!webdavConfigured && (
-            <p className="font-mono text-xs text-gray-500">配置 WebDAV 服务器后即可使用云端备份功能</p>
+            <p className="font-mono text-xs text-gray-500">Configure a WebDAV server to enable cloud backup</p>
           )}
         </BrutalCard>
 
         <BrutalCard>
           <h3 className="font-black text-xl mb-4 flex items-center gap-2">
-            <Download className="w-5 h-5" /> 导出数据
+            <Download className="w-5 h-5" /> Export Data
           </h3>
           <div className="space-y-3">
             <BrutalButton variant="ghost" className="w-full" onClick={() => exportPrompts('json')}>
-              导出提示词 (JSON)
+              Export Prompts (JSON)
             </BrutalButton>
             <BrutalButton variant="ghost" className="w-full" onClick={() => exportPrompts('markdown')}>
-              导出提示词 (Markdown)
+              Export Prompts (Markdown)
             </BrutalButton>
             <BrutalButton variant="ghost" className="w-full" onClick={exportConfigs}>
-              导出 AI 配置 (JSON)
+              Export AI Configs (JSON)
             </BrutalButton>
           </div>
         </BrutalCard>
 
         <BrutalCard>
           <h3 className="font-black text-xl mb-4 flex items-center gap-2">
-            <Upload className="w-5 h-5" /> 导入数据
+            <Upload className="w-5 h-5" /> Import Data
           </h3>
           <div className="space-y-3">
             <input
@@ -342,20 +342,20 @@ export default function SettingsPage() {
               onClick={importPrompts}
               disabled={!importFile}
             >
-              导入提示词
+              Import Prompts
             </BrutalButton>
           </div>
         </BrutalCard>
 
         <BrutalCard className="md:col-span-2">
           <h3 className="font-black text-xl mb-4 flex items-center gap-2">
-            <Settings className="w-5 h-5" /> 关于
+            <Settings className="w-5 h-5" /> About
           </h3>
           <div className="font-mono text-sm space-y-2">
-            <p><strong>Prompt Manager</strong> — AI 提示词管理与多模型对比平台</p>
-            <p>后端: Go + Gin + SQLite</p>
-            <p>前端: React + Vite + Tailwind CSS</p>
-            <p>风格: Neo-Brutalist</p>
+            <p><strong>Prompt Manager</strong> — AI Prompt Management and Multi-Model Comparison Platform</p>
+            <p>Backend: Go + Gin + SQLite</p>
+            <p>Frontend: React + Vite + Tailwind CSS</p>
+            <p>Style: Neo-Brutalist</p>
           </div>
         </BrutalCard>
       </div>

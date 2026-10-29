@@ -22,7 +22,7 @@ export default function CategoriesPage() {
 
   const load = async () => {
     try { const { data } = await api.get('/categories'); setCategories(data || []) }
-    catch { toast.error('加载失败') }
+    catch { toast.error('Failed to load') }
   }
 
   const resetForm = () => {
@@ -37,57 +37,57 @@ export default function CategoriesPage() {
   }
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('请输入分类名称'); return }
+    if (!form.name.trim()) { toast.error('Please enter a category name'); return }
     try {
       if (editing) {
         await api.put(`/categories/${editing.id}`, form)
-        toast.success('更新成功')
+        toast.success('Updated')
       } else {
         await api.post('/categories', form)
-        toast.success('创建成功')
+        toast.success('Created')
       }
       setShowForm(false)
       resetForm()
       load()
     } catch (err: any) {
-      toast.error(err.response?.data?.error || '保存失败')
+      toast.error(err.response?.data?.error || 'Failed to save')
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('删除分类后，相关提示词和知识库文章将失去分类关联。确定删除？')) return
-    try { await api.delete(`/categories/${id}`); toast.success('已删除'); load() }
-    catch { toast.error('删除失败') }
+    if (!confirm('Deleting this category will unlink related prompts and knowledge articles. Delete?')) return
+    try { await api.delete(`/categories/${id}`); toast.success('Deleted'); load() }
+    catch { toast.error('Failed to delete') }
   }
 
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-black text-3xl md:text-5xl tracking-tight">分类管理</h1>
-          <p className="font-mono text-sm text-gray-600 mt-1">管理提示词和知识库的分类标签</p>
+          <h1 className="font-black text-3xl md:text-5xl tracking-tight">Category Management</h1>
+          <p className="font-mono text-sm text-gray-600 mt-1">Manage categories for prompts and knowledge articles</p>
         </div>
         <BrutalButton onClick={() => { resetForm(); setShowForm(true) }}>
-          <Plus className="w-4 h-4 inline mr-1" /> 新建分类
+          <Plus className="w-4 h-4 inline mr-1" /> New Category
         </BrutalButton>
       </div>
 
       {showForm && (
         <BrutalCard className="mb-6" accentColor="#8338ec">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-xl">{editing ? '编辑分类' : '新建分类'}</h3>
+            <h3 className="font-black text-xl">{editing ? 'Edit Category' : 'New Category'}</h3>
             <button onClick={() => { setShowForm(false); resetForm() }}><X className="w-5 h-5" /></button>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <BrutalInput
-              label="名称"
+              label="Name"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="例如：编程、写作、翻译"
+              placeholder="e.g. Coding, Writing, Translation"
               required
             />
             <div>
-              <label className="font-black text-sm block mb-1">颜色</label>
+              <label className="font-black text-sm block mb-1">Color</label>
               <div className="flex gap-2 flex-wrap">
                 {colorPresets.map((color) => (
                   <button
@@ -101,17 +101,17 @@ export default function CategoriesPage() {
             </div>
             <div className="md:col-span-2">
               <BrutalTextarea
-                label="描述"
+                label="Description"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="分类的简短描述..."
+                placeholder="Short description of the category..."
                 rows={2}
               />
             </div>
           </div>
           <div className="mt-4 flex gap-2">
-            <BrutalButton onClick={handleSave}>{editing ? '更新' : '创建'}</BrutalButton>
-            <BrutalButton variant="ghost" onClick={() => { setShowForm(false); resetForm() }}>取消</BrutalButton>
+            <BrutalButton onClick={handleSave}>{editing ? 'Update' : 'Create'}</BrutalButton>
+            <BrutalButton variant="ghost" onClick={() => { setShowForm(false); resetForm() }}>Cancel</BrutalButton>
           </div>
         </BrutalCard>
       )}
@@ -130,7 +130,7 @@ export default function CategoriesPage() {
               <p className="font-mono text-sm text-gray-600 mb-3">{c.description}</p>
             )}
             <p className="font-mono text-xs text-gray-400 mb-3">
-              创建于 {new Date(c.created_at).toLocaleDateString()}
+              Created {new Date(c.created_at).toLocaleDateString()}
             </p>
             <div className="flex gap-2 border-t-2 border-black pt-3">
               <BrutalButton size="sm" variant="ghost" onClick={() => handleEdit(c)}>
@@ -147,8 +147,8 @@ export default function CategoriesPage() {
       {categories.length === 0 && !showForm && (
         <div className="text-center py-20">
           <Tag className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-          <p className="font-black text-xl">没有分类</p>
-          <p className="font-mono text-sm text-gray-500 mt-1">创建分类来组织你的提示词和知识库文章</p>
+          <p className="font-black text-xl">No categories</p>
+          <p className="font-mono text-sm text-gray-500 mt-1">Create categories to organize your prompts and knowledge articles</p>
         </div>
       )}
     </div>

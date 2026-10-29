@@ -240,7 +240,7 @@ func (h *AIConfigHandler) Test(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"status":     "error",
-			"message":    fmt.Sprintf("连接失败: %v", err),
+			"message":    fmt.Sprintf("Connection failed: %v", err),
 			"latency_ms": latency,
 			"model":      testModel,
 		})
@@ -253,7 +253,7 @@ func (h *AIConfigHandler) Test(c *gin.Context) {
 	if resp.StatusCode != 200 {
 		c.JSON(http.StatusOK, gin.H{
 			"status":     "error",
-			"message":    fmt.Sprintf("API 返回 %d: %s", resp.StatusCode, string(body)),
+			"message":    fmt.Sprintf("API returned %d: %s", resp.StatusCode, string(body)),
 			"latency_ms": latency,
 			"model":      testModel,
 		})
@@ -276,7 +276,7 @@ func (h *AIConfigHandler) Test(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":     "ok",
-		"message":    fmt.Sprintf("连接成功 (%dms)", latency),
+		"message":    fmt.Sprintf("Connection successful (%dms)", latency),
 		"latency_ms": latency,
 		"model":      testModel,
 		"reply":      reply,
